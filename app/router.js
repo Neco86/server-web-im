@@ -5,5 +5,6 @@
  */
 module.exports = app => {
   const { router, controller } = app;
-  router.get('/', controller.home.index);
+  router.post('/getCaptcha', controller.register.getCaptcha);
+  router.post('/register', controller.register.register);
 };
