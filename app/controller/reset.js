@@ -6,7 +6,7 @@ const nodemailer = require('../utils/nodemailer');
 const { createRandomNum } = require('../utils/utils');
 
 
-class RegisterController extends Controller {
+class ResetController extends Controller {
   // 获取验证码
   async getCaptcha() {
     const { ctx, app } = this;
@@ -17,12 +17,6 @@ class RegisterController extends Controller {
       .query('SELECT * FROM userInfo WHERE email = ?', email);
     if (exist.length) {
       // 存在
-      ctx.body = {
-        code: ERROR_CODE,
-        msg: '用户存在,请尝试登陆',
-      };
-    } else {
-      // 不存在
       const captcha = createRandomNum(6);
       const timestamp = String(Date.now());
       // 是否获取过验证码
@@ -49,25 +43,24 @@ class RegisterController extends Controller {
         code: SUCCESS_CODE,
         msg: '获取验证码成功',
       };
+    } else {
+      // 不存在
+      ctx.body = {
+        code: ERROR_CODE,
+        msg: '用户不存在',
+      };
     }
   }
-  // 注册
-  async register() {
+  // 验证邮箱
+  async confirmEmail() {
     const { ctx, app } = this;
     const data = ctx.request.body;
-    const { nickname, password, email, captcha } = data;
+    const { email, captcha } = data;
     // 当前用户是否存在
     const exist = await app.mysql
       .query('SELECT * FROM userInfo WHERE email = ?', email);
     if (exist.length) {
       // 存在
-      ctx.body = {
-        code: ERROR_CODE,
-        msg: '用户存在,请尝试登陆',
-      };
-    } else {
-      // 不存在
-      // 验证码是否错误或过期
       const confirm = await app.mysql
         .query('SELECT * FROM confirm WHERE email = ?', email);
       if ((confirm[0].captcha !== captcha) || (Date.now() - confirm.timestamp > 30 * 60 * 1000)) {
@@ -81,16 +74,31 @@ class RegisterController extends Controller {
         // 删除获取验证码
         await app.mysql
           .query('DELETE FROM confirm where email = ?', email);
-        // 插入用户表
-        await app.mysql
-          .query('INSERT INTO userInfo(email,nickName,password) VALUES(?,?,?)', [email, nickname, password]);
         ctx.body = {
           code: SUCCESS_CODE,
-          msg: '注册成功',
+          msg: '邮箱验证成功',
         };
       }
+    } else {
+      // 不存在
+      ctx.body = {
+        code: ERROR_CODE,
+        msg: '用户不存在',
+      };
     }
   }
+  async resetPassword() {
+    const { ctx, app } = this;
+    const data = ctx.request.body;
+    const { email, password } = data;
+    await app.mysql
+      .query('UPDATE userInfo SET password = ? WHERE email = ?', [password, email]);
+    ctx.body = {
+      code: SUCCESS_CODE,
+      msg: '重置密码成功',
+    };
+  }
+
 }
 
-module.exports = RegisterController;
+module.exports = ResetController;
