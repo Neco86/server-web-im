@@ -12,4 +12,9 @@ module.exports = app => {
   router.post('/getResetCaptcha', controller.reset.getCaptcha);
   router.post('/confirmEmail', controller.reset.confirmEmail);
   router.post('/resetPassword', controller.reset.resetPassword);
+  // 用户登录
+  router.post('/login', controller.login.login);
+  // 主页
+  router.post('/verifyToken', controller.home.verifyToken);
+
 };
