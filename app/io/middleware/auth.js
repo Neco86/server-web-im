@@ -9,7 +9,7 @@ module.exports = () => {
     const token = socket.handshake.query.token;
     try {
       const tokenInfo = await app.jwt.verify(token, app.config.jwt.secret);
-      socket.id = tokenInfo.email;
+      socket.email = tokenInfo.email;
       // 加入默认房间
       socket.join(DEFAULT_ROOM);
       await next();
