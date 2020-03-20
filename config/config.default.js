@@ -61,6 +61,15 @@ module.exports = appInfo => {
     secret: '123456',
   };
 
+  config.io = {
+    namespace: {
+      '/': {
+        connectionMiddleware: ['auth'],
+        packetMiddleware: [],
+      },
+    },
+  };
+
   return {
     ...config,
     ...userConfig,

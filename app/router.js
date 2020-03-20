@@ -4,7 +4,7 @@
  * @param {Egg.Application} app - egg application
  */
 module.exports = app => {
-  const { router, controller } = app;
+  const { router, controller, io } = app;
   // 用户注册
   router.post('/getCaptcha', controller.register.getCaptcha);
   router.post('/register', controller.register.register);
@@ -15,6 +15,5 @@ module.exports = app => {
   // 用户登录
   router.post('/login', controller.login.login);
   // 主页
-  router.post('/verifyToken', controller.home.verifyToken);
-
+  io.of('/').route('init', io.controller.home.init);
 };
