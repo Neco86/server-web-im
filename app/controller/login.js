@@ -1,7 +1,7 @@
 'use strict';
 
 const Controller = require('egg').Controller;
-const { SUCCESS_CODE, ERROR_CODE } = require('../utils/const');
+const { SUCCESS_CODE, ERROR_CODE, USER_STATUS } = require('../utils/const');
 
 
 class LoginController extends Controller {
@@ -24,6 +24,9 @@ class LoginController extends Controller {
           // 5s过期
           // exp: Math.floor(Date.now() / 1000) + 5,
         }, app.config.jwt.secret);
+        const status = exist[0].status === USER_STATUS.OFFLINE ? USER_STATUS.ONLINE : exist[0].status;
+        await app.mysql
+          .query('UPDATE userInfo SET status = ? WHERE email = ?', [status, email]);
         ctx.body = {
           code: SUCCESS_CODE,
           msg: '登录成功',

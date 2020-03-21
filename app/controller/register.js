@@ -1,7 +1,7 @@
 'use strict';
 
 const Controller = require('egg').Controller;
-const { SUCCESS_CODE, ERROR_CODE } = require('../utils/const');
+const { SUCCESS_CODE, ERROR_CODE, USER_STATUS } = require('../utils/const');
 const nodemailer = require('../utils/nodemailer');
 const { createRandomNum } = require('../utils/utils');
 
@@ -83,7 +83,7 @@ class RegisterController extends Controller {
           .query('DELETE FROM confirm where email = ?', email);
         // 插入用户表
         await app.mysql
-          .query('INSERT INTO userInfo(email,nickName,password) VALUES(?,?,?)', [email, nickname, password]);
+          .query('INSERT INTO userInfo(email,nickName,password,status) VALUES(?,?,?,?)', [email, nickname, password, USER_STATUS.OFFLINE]);
         ctx.body = {
           code: SUCCESS_CODE,
           msg: '注册成功',
