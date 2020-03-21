@@ -18,4 +18,6 @@ module.exports = app => {
   io.of('/').route('init', io.controller.home.init);
   io.of('/').route('getUserInfo', io.controller.home.getUserInfo);
   io.of('/').route('setUserInfo', io.controller.home.setUserInfo);
+  // 上传文件
+  io.of('/').route('setAvatar', io.controller.file.setAvatar);
 };
