@@ -16,4 +16,6 @@ module.exports = app => {
   router.post('/login', controller.login.login);
   // 主页
   io.of('/').route('init', io.controller.home.init);
+  io.of('/').route('getUserInfo', io.controller.home.getUserInfo);
+  io.of('/').route('setUserInfo', io.controller.home.setUserInfo);
 };
