@@ -10,16 +10,19 @@ module.exports = () => {
     try {
       const tokenInfo = await app.jwt.verify(token, app.config.jwt.secret);
       socket.email = tokenInfo.email;
+      const users = await app.mysql
+        .query('SELECT * FROM userInfo WHERE email = ?', tokenInfo.email);
+      // 上线
+      await app.mysql
+        .query('UPDATE userInfo SET status = ? WHERE email = ?',
+          [users[0].status === USER_STATUS.OFFLINE ? USER_STATUS.ONLINE : users[0].status, tokenInfo.email]);
       // 加入默认房间
       socket.join(DEFAULT_ROOM);
       await next();
       // 离线
-      // 在线 => 离线
-      const exist = await app.mysql
-        .query('SELECT * FROM userInfo WHERE email = ?', tokenInfo.email);
-      const status = exist[0].status === USER_STATUS.ONLINE ? USER_STATUS.OFFLINE : exist[0].status;
       await app.mysql
-        .query('UPDATE userInfo SET status = ? WHERE email = ?', [status, tokenInfo.email]);
+        .query('UPDATE userInfo SET status = ? WHERE email = ?',
+          [users[0].status === USER_STATUS.ONLINE ? USER_STATUS.OFFLINE : users[0].status, tokenInfo.email]);
     } catch (e) {
       socket.disconnect();
     }
