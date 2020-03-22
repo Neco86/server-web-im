@@ -1,7 +1,7 @@
 'use strict';
 
 const Controller = require('egg').Controller;
-const { SUCCESS_CODE, ERROR_CODE, USER_STATUS } = require('../utils/const');
+const { SUCCESS_CODE, ERROR_CODE, USER_STATUS, GROUP_TYPE } = require('../utils/const');
 const nodemailer = require('../utils/nodemailer');
 const { createRandomNum } = require('../utils/utils');
 
@@ -84,6 +84,12 @@ class RegisterController extends Controller {
         // 插入用户表
         await app.mysql
           .query('INSERT INTO userInfo(email,nickName,password,status) VALUES(?,?,?,?)', [email, nickname, password, USER_STATUS.OFFLINE]);
+        // 创建好友默认分组
+        await app.mysql
+          .query('INSERT INTO userGroupInfo(email,groupName,type) VALUES(?,?,?)', [email, '好友默认分组', GROUP_TYPE.FRIEND]);
+        // 创建群组默认分组
+        await app.mysql
+          .query('INSERT INTO userGroupInfo(email,groupName,type) VALUES(?,?,?)', [email, '群聊默认分组', GROUP_TYPE.GROUP]);
         ctx.body = {
           code: SUCCESS_CODE,
           msg: '注册成功',

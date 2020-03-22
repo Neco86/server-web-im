@@ -8,5 +8,10 @@ const USER_STATUS = {
   HIDE: '2',
   OFFLINE: '3',
 };
+// 分组类型
+const GROUP_TYPE = {
+  FRIEND: '1',
+  GROUP: '2',
+};
 
-module.exports = { SUCCESS_CODE, ERROR_CODE, DEFAULT_ROOM, USER_STATUS };
+module.exports = { SUCCESS_CODE, ERROR_CODE, DEFAULT_ROOM, USER_STATUS, GROUP_TYPE };
