@@ -23,9 +23,9 @@ class HomeController extends Controller {
     const { socket, app } = this.ctx;
     let sql = '';
     const params = this.ctx.args[0];
-    Object.keys(params).forEach(name => { sql += ` ${name} = ?`; });
+    Object.keys(params).forEach((name, index) => { sql += `${index > 0 ? ',' : ''}${name} = ?`; });
     await app.mysql
-      .query(`UPDATE userInfo SET${sql} WHERE email = ?`, [...Object.values(params), socket.email]);
+      .query(`UPDATE userInfo SET ${sql} WHERE email = ?`, [...Object.values(params), socket.email]);
     socket.emit('setUserInfo', params);
   }
 }
