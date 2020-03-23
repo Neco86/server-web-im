@@ -20,4 +20,6 @@ module.exports = app => {
   io.of('/').route('setUserInfo', io.controller.home.setUserInfo);
   // 上传文件
   io.of('/').route('setAvatar', io.controller.file.setAvatar);
+  // 搜索好友/群
+  io.of('/').route('searchInfo', io.controller.search.searchInfo);
 };

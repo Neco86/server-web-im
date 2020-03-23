@@ -10,8 +10,22 @@ const USER_STATUS = {
 };
 // 分组类型
 const GROUP_TYPE = {
-  FRIEND: '1',
-  GROUP: '2',
+  GROUP: '1',
+  FRIEND: '2',
+};
+// 搜索结果类型
+const SEARCH_TYPE = {
+  STRANGER: '1',
+  FRIEND: '2',
+  SELF: '3',
+};
+// 好友类型
+const FRIEND_TYPE = {
+  GROUP: '1',
+  FRIEND: '2',
 };
 
-module.exports = { SUCCESS_CODE, ERROR_CODE, DEFAULT_ROOM, USER_STATUS, GROUP_TYPE };
+module.exports = {
+  SUCCESS_CODE, ERROR_CODE, DEFAULT_ROOM, USER_STATUS, GROUP_TYPE,
+  SEARCH_TYPE, FRIEND_TYPE,
+};
