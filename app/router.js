@@ -22,4 +22,9 @@ module.exports = app => {
   io.of('/').route('setAvatar', io.controller.file.setAvatar);
   // 搜索好友/群
   io.of('/').route('searchInfo', io.controller.search.searchInfo);
+  // 发送消息
+  // 发送添加好友
+  io.of('/').route('addFriend', io.controller.chat.addFriend);
+  // 获取分组
+  io.of('/').route('getMyGroup', io.controller.group.getMyGroup);
 };

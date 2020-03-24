@@ -5,6 +5,7 @@
 /**
  * @param {Egg.EggAppInfo} appInfo app info
  */
+
 module.exports = appInfo => {
   /**
    * built-in config
@@ -67,6 +68,15 @@ module.exports = appInfo => {
         connectionMiddleware: ['auth'],
         packetMiddleware: [],
       },
+    },
+    generateId: req => {
+      const jwt = require('jsonwebtoken');
+      try {
+        const tokenVerify = jwt.verify(req._query.token, config.jwt.secret);
+        return tokenVerify.email;
+      } catch (e) {
+        return Date.now();
+      }
     },
   };
 

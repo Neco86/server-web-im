@@ -9,7 +9,7 @@ module.exports = () => {
     const token = socket.handshake.query.token;
     try {
       const tokenInfo = await app.jwt.verify(token, app.config.jwt.secret);
-      socket.email = tokenInfo.email;
+      socket.id = tokenInfo.email;
       // 上线
       const loginUsers = await app.mysql
         .query('SELECT * FROM userInfo WHERE email = ?', tokenInfo.email);

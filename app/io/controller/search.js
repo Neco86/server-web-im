@@ -17,9 +17,9 @@ class SearchController extends Controller {
       .query(`SELECT * FROM userInfo WHERE email like '%${search}%' OR nickname LIKE '%${search}%'`);
     // 查询所有好友
     const friends = await app.mysql
-      .query(`SELECT * FROM userChatInfo WHERE email = '${socket.email}' AND type = '${FRIEND_TYPE.FRIEND}'`);
+      .query(`SELECT * FROM userChatInfo WHERE email = '${socket.id}' AND type = '${FRIEND_TYPE.FRIEND}'`);
     includesFriends.forEach(user => {
-      if (user.email === socket.email) {
+      if (user.email === socket.id) {
         self.push({
           avatar: user.avatar,
           nickname: user.nickname,
@@ -53,7 +53,7 @@ class SearchController extends Controller {
       .query(`SELECT * FROM groupCommonInfo WHERE chatKey like '%${search}%' OR nickname LIKE '%${search}%'`);
     // 查询所有群聊
     const groups = await app.mysql
-      .query(`SELECT * FROM userChatInfo WHERE email = '${socket.email}' AND type = '${FRIEND_TYPE.GROUP}'`);
+      .query(`SELECT * FROM userChatInfo WHERE email = '${socket.id}' AND type = '${FRIEND_TYPE.GROUP}'`);
     includesGroups.forEach(user => {
       if (groups.find(group => group.peer === user.chatKey)) {
         joinedGroup.push({

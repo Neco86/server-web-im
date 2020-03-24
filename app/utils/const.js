@@ -25,7 +25,14 @@ const FRIEND_TYPE = {
   FRIEND: '2',
 };
 
+// msgType 聊天信息类型
+const MSG_TYPE = {
+  COMMON_CHAT: '1',
+  FILE: '2',
+  APPLY_FRIEND: '3',
+};
+
 module.exports = {
   SUCCESS_CODE, ERROR_CODE, DEFAULT_ROOM, USER_STATUS, GROUP_TYPE,
-  SEARCH_TYPE, FRIEND_TYPE,
+  SEARCH_TYPE, FRIEND_TYPE, MSG_TYPE,
 };
