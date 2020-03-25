@@ -8,14 +8,6 @@ class HomeController extends Controller {
     const users = await app.mysql
       .query('SELECT * FROM userInfo WHERE email = ?', socket.id);
     socket.emit('init', { nickname: users[0].nickname });
-    // 加入 自己 好友 群组 房间
-    socket.join(socket.id);
-    const friends = await app.mysql
-      .query('SELECT * FROM userChatInfo WHERE email = ?', socket.id);
-    for (let i = 0; i < friends.length; i++) {
-      const friend = friends[i];
-      socket.join(friend.peer);
-    }
   }
   async getUserInfo() {
     const { socket, app } = this.ctx;
