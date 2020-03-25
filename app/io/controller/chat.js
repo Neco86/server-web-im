@@ -6,7 +6,7 @@ const { FRIEND_TYPE, MSG_TYPE } = require('../../utils/const');
 class ChatController extends Controller {
   async addFriend() {
     const { socket, app } = this.ctx;
-    const { friendType, account, reason, group, remarkName } = this.ctx.args[0];
+    const { friendType, account, reason, groupKey, remarkName } = this.ctx.args[0];
     const nsp = app.io.of('/');
     // 添加好友
     if (friendType === FRIEND_TYPE.FRIEND) {
@@ -39,7 +39,7 @@ class ChatController extends Controller {
         .query(`
         UPDATE chat
         SET
-        msg = '${JSON.stringify({ group, remarkName })}'
+        msg = '${JSON.stringify({ groupKey, remarkName })}'
         ,timestamp = '${String(Date.now())}'
         WHERE 
         email = '${socket.id}' 
@@ -53,7 +53,7 @@ class ChatController extends Controller {
             socket.id,
             account,
             JSON.stringify({
-              group,
+              groupKey,
               remarkName,
             }),
             String(Date.now()),
