@@ -67,6 +67,44 @@ class ChatController extends Controller {
       msg: '申请添加成功!',
     });
   }
+  async online() {
+    const { socket, app } = this.ctx;
+    const friends = await app.mysql
+      .query(`SELECT * FROM userChatInfo WHERE email = '${socket.id}'`);
+    for (let i = 0; i < friends.length; i++) {
+      const friend = friends[i];
+      const nsp = app.io.of('/');
+      if (friend.type === FRIEND_TYPE.FRIEND && nsp.sockets[friend.peer]) {
+        const myInfo = await app.mysql
+          .query(`SELECT * FROM userInfo WHERE email = '${socket.id}'`);
+        const friendInfo = await app.mysql
+          .query(`SELECT * FROM userChatInfo WHERE peer = '${socket.id}' AND email = '${friend.peer}'`);
+        const { avatar, nickname, email } = myInfo[0];
+        nsp.sockets[friend.peer].emit('online', {
+          avatar, nickname: (friendInfo[0].remarkName || nickname), email, groupKey: friendInfo[0].groupKey,
+        });
+      }
+    }
+  }
+  async offline() {
+    const { socket, app } = this.ctx;
+    const friends = await app.mysql
+      .query(`SELECT * FROM userChatInfo WHERE email = '${socket.id}'`);
+    for (let i = 0; i < friends.length; i++) {
+      const friend = friends[i];
+      const nsp = app.io.of('/');
+      if (friend.type === FRIEND_TYPE.FRIEND && nsp.sockets[friend.peer]) {
+        const myInfo = await app.mysql
+          .query(`SELECT * FROM userInfo WHERE email = '${socket.id}'`);
+        const friendInfo = await app.mysql
+          .query(`SELECT * FROM userChatInfo WHERE peer = '${socket.id}' AND email = '${friend.peer}'`);
+        const { email } = myInfo[0];
+        nsp.sockets[friend.peer].emit('offline', {
+          email, groupKey: friendInfo[0].groupKey,
+        });
+      }
+    }
+  }
 }
 
 module.exports = ChatController;

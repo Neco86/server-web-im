@@ -25,6 +25,9 @@ module.exports = app => {
   // 发送消息
   // 发送添加好友
   io.of('/').route('addFriend', io.controller.chat.addFriend);
+  // 通知上下线
+  io.of('/').route('online', io.controller.chat.online);
+  io.of('/').route('offline', io.controller.chat.offline);
   // 获取分组
   io.of('/').route('getMyGroup', io.controller.group.getMyGroup);
 };
