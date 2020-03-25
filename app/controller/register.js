@@ -83,7 +83,7 @@ class RegisterController extends Controller {
           .query('DELETE FROM confirm where email = ?', email);
         // 插入用户表
         await app.mysql
-          .query('INSERT INTO userInfo(email,nickName,password,status) VALUES(?,?,?,?)', [email, nickname, password, USER_STATUS.OFFLINE]);
+          .query('INSERT INTO userInfo(email,nickName,password,status,recentStatus) VALUES(?,?,?,?,?)', [email, nickname, password, USER_STATUS.OFFLINE, USER_STATUS.ONLINE]);
         // 创建好友默认分组
         await app.mysql
           .query('INSERT INTO userGroupInfo(email,groupName,type) VALUES(?,?,?)', [email, '好友默认分组', GROUP_TYPE.FRIEND]);
