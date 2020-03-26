@@ -1,23 +1,22 @@
 'use strict';
 
 const Controller = require('egg').Controller;
-const { FRIEND_TYPE } = require('../../utils/const');
+const { FRIEND_TYPE, USER_STATUS } = require('../../utils/const');
 
 class GroupController extends Controller {
   async getMyGroup() {
     const { socket, app } = this.ctx;
     const friendType = this.ctx.args[0];
-    const groups = await app.mysql
+    let groups = await app.mysql
       .query(`SELECT * FROM userGroupInfo WHERE email = '${socket.id}' AND type = '${friendType}'`);
+    groups = groups.map(group => ({ key: group.key, groupName: group.groupName }));
     if (friendType === FRIEND_TYPE.FRIEND) {
       for (let i = 0; i < groups.length; i++) {
         const group = groups[i];
         group.friends = [];
         // {
         //   key: 4,
-        //   email: '1157868866@qq.com',
         //   groupName: '好友分组3',
-        //   type: '2'
         // }
         const friends = await app.mysql
           .query(`SELECT * FROM userChatInfo WHERE (email = '${socket.id}') AND (type = '${friendType}') AND (groupKey = '${group.key}')`);
@@ -42,7 +41,8 @@ class GroupController extends Controller {
                 sex,
                 age,
                 avatar,
-                online: status === 1,
+                online: status === USER_STATUS.ONLINE,
+                remarkName: friend.remarkName,
               };
             }));
         }
@@ -54,9 +54,7 @@ class GroupController extends Controller {
         group.groups = [];
         // {
         //   key: 5,
-        //   email: '1157868866@qq.com',
         //   groupName: '群聊分组2',
-        //   type: '1'
         // }
         const peers = await app.mysql
           .query(`SELECT * FROM userChatInfo WHERE (email = '${socket.id}') AND (type = '${friendType}') AND (groupKey = '${group.key}')`);
@@ -72,7 +70,7 @@ class GroupController extends Controller {
           // }
           const groupsInfo = await app.mysql
             .query(`SELECT * FROM groupCommonInfo WHERE chatKey = '${peer.peer}'`);
-          group.groups.push(...groupsInfo.map(item => item));
+          group.groups.push(...groupsInfo.map(item => ({ ...item, remarkName: peer.remarkName })));
         }
       }
     }
