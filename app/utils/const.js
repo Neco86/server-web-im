@@ -39,8 +39,14 @@ const GROUP_PERMIT = {
   MEMBER: '3',
   BANNED: '4',
 };
+// 编辑分组
+const EDIT_GROUP = {
+  ADD: 'add',
+  DELETE: 'delete',
+  RENAME: 'rename',
+};
 
 module.exports = {
   SUCCESS_CODE, ERROR_CODE, DEFAULT_ROOM, USER_STATUS, GROUP_TYPE,
-  SEARCH_TYPE, FRIEND_TYPE, MSG_TYPE, GROUP_PERMIT,
+  SEARCH_TYPE, FRIEND_TYPE, MSG_TYPE, GROUP_PERMIT, EDIT_GROUP,
 };

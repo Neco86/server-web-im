@@ -1,7 +1,7 @@
 'use strict';
 
 const Controller = require('egg').Controller;
-const { FRIEND_TYPE, USER_STATUS } = require('../../utils/const');
+const { FRIEND_TYPE, USER_STATUS, EDIT_GROUP } = require('../../utils/const');
 
 class GroupController extends Controller {
   async getMyGroup() {
@@ -91,17 +91,17 @@ class GroupController extends Controller {
     const { socket, app } = this.ctx;
     const { type, method, value, key } = this.ctx.args[0];
     switch (method) {
-      case 'add':
+      case EDIT_GROUP.ADD:
         await app.mysql.query(`
         INSERT INTO userGroupInfo(email,groupName,type) VALUES('${socket.id}','${value}','${type}')
         `);
         break;
-      case 'delete':
+      case EDIT_GROUP.DELETE:
         await app.mysql.query(`
         DELETE FROM userGroupInfo where \`key\` = ${key} AND email = '${socket.id}' AND type = '${type}'
         `);
         break;
-      case 'rename':
+      case EDIT_GROUP.RENAME:
         await app.mysql.query(`
         UPDATE userGroupInfo SET groupName = '${value}' WHERE \`key\` = ${key} AND email = '${socket.id}' AND type = '${type}'
         `);
@@ -114,7 +114,7 @@ class GroupController extends Controller {
   async editFriend() {
     const { socket, app } = this.ctx;
     const { friendType, method, peer } = this.ctx.args[0];
-    // if (method === 'auth')
+    // TODO: 处理删除好友/退出群聊/解散群聊/授权群主
   }
 }
 
