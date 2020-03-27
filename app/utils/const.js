@@ -32,7 +32,15 @@ const MSG_TYPE = {
   APPLY_FRIEND: '3',
 };
 
+// permit 群聊权限
+const GROUP_PERMIT = {
+  OWNER: '1',
+  MANAGER: '2',
+  MEMBER: '3',
+  BANNED: '4',
+};
+
 module.exports = {
   SUCCESS_CODE, ERROR_CODE, DEFAULT_ROOM, USER_STATUS, GROUP_TYPE,
-  SEARCH_TYPE, FRIEND_TYPE, MSG_TYPE,
+  SEARCH_TYPE, FRIEND_TYPE, MSG_TYPE, GROUP_PERMIT,
 };

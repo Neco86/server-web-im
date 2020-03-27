@@ -30,4 +30,9 @@ module.exports = app => {
   io.of('/').route('offline', io.controller.chat.offline);
   // 获取分组
   io.of('/').route('getMyGroup', io.controller.group.getMyGroup);
+  // 修改好友/群聊数据
+  io.of('/').route('changeFriendInfo', io.controller.changeInfo.changeFriendInfo);
+  io.of('/').route('changeGroupInfo', io.controller.changeInfo.changeGroupInfo);
+
+
 };
