@@ -70,7 +70,18 @@ class GroupController extends Controller {
           // }
           const groupsInfo = await app.mysql
             .query(`SELECT * FROM groupCommonInfo WHERE chatKey = '${peer.peer}'`);
-          group.groups.push(...groupsInfo.map(item => ({ ...item, remarkName: peer.remarkName })));
+          const groupMembers = await app.mysql
+            .query(`SELECT * FROM groupMemberInfo WHERE chatKey = '${peer.peer}'`);
+          const memberInfo = await app.mysql
+            .query(`SELECT * FROM groupMemberInfo WHERE chatKey = '${peer.peer}' AND email = '${socket.id}'`);
+          group.groups.push(...groupsInfo.map(item => (
+            {
+              ...item,
+              remarkName: peer.remarkName,
+              count: groupMembers.length,
+              memberName: memberInfo[0].memberName,
+              permit: memberInfo[0].permit,
+            })));
         }
       }
     }
