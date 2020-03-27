@@ -1,31 +1,56 @@
 'use strict';
 
 const Controller = require('egg').Controller;
-const { FRIEND_TYPE, MSG_TYPE } = require('../../utils/const');
+const { FRIEND_TYPE, MSG_TYPE, GROUP_PERMIT } = require('../../utils/const');
 
 class ChatController extends Controller {
   async addFriend() {
     const { socket, app } = this.ctx;
     const { friendType, account, reason, groupKey, remarkName } = this.ctx.args[0];
     const nsp = app.io.of('/');
+    const self = await app.mysql
+      .query(`SELECT * FROM userInfo WHERE email = '${socket.id}'`);
     // 添加好友
     if (friendType === FRIEND_TYPE.FRIEND) {
-      const user = await app.mysql
-        .query(`SELECT * FROM userInfo WHERE email = '${socket.id}'`);
       // 如果在线 给指定id发消息
       if (nsp.sockets[account]) {
         nsp.sockets[account].emit('applyFriend', {
-          email: user[0].email,
-          nickname: user[0].nickname,
-          avatar: user[0].avatar,
+          email: self[0].email,
+          nickname: self[0].nickname,
+          avatar: self[0].avatar,
           reason,
           type: friendType,
         });
       }
     }
     // 添加群聊
-    if (friendType === FRIEND_TYPE.APPLY_FRIEND) {
+    if (friendType === FRIEND_TYPE.GROUP) {
       // TODO: 查找群成员,如果在线,发消息
+      const users = await app.mysql
+        .query(`SELECT * FROM groupMemberInfo WHERE chatKey = '${account}' 
+        AND ( permit = '${GROUP_PERMIT.OWNER}' || permit = '${GROUP_PERMIT.MANAGER}' )`);
+      const groupInfo = await app.mysql
+        .query(`SELECT * FROM groupCommonInfo WHERE chatKey = '${account}'`);
+      for (let i = 0; i < users.length; i++) {
+        const user = users[i].email;
+        // 如果在线 给指定id发消息
+        if (nsp.sockets[user]) {
+          const groupRemarkName = await app.mysql
+            .query(`SELECT * FROM userChatInfo WHERE email = '${user}' AND peer = '${account}'`);
+          const friendRemarkName = await app.mysql
+            .query(`SELECT * FROM userChatInfo WHERE email = '${user}' AND peer = '${self[0].email}'`);
+          nsp.sockets[user].emit('applyFriend', {
+            email: self[0].email,
+            nickname: friendRemarkName[0].remarkName || self[0].nickname,
+            avatar: self[0].avatar,
+            reason,
+            type: friendType,
+            chatKey: groupInfo[0].chatKey,
+            groupAvatar: groupInfo[0].avatar,
+            groupName: groupRemarkName[0].remarkName || groupInfo[0].nickname,
+          });
+        }
+      }
     }
     // 申请过且没别处理的
     const applied = await app.mysql
@@ -39,7 +64,7 @@ class ChatController extends Controller {
         .query(`
         UPDATE chat
         SET
-        msg = '${JSON.stringify({ groupKey, remarkName })}'
+        msg = '${JSON.stringify({ groupKey, remarkName, reason })}'
         ,timestamp = '${String(Date.now())}'
         WHERE 
         email = '${socket.id}' 
