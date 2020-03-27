@@ -25,7 +25,6 @@ class ChatController extends Controller {
     }
     // 添加群聊
     if (friendType === FRIEND_TYPE.GROUP) {
-      // TODO: 查找群成员,如果在线,发消息
       const users = await app.mysql
         .query(`SELECT * FROM groupMemberInfo WHERE chatKey = '${account}' 
         AND ( permit = '${GROUP_PERMIT.OWNER}' || permit = '${GROUP_PERMIT.MANAGER}' )`);

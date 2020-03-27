@@ -111,6 +111,11 @@ class GroupController extends Controller {
     }
     socket.emit('editGroup', this.ctx.args[0]);
   }
+  async editFriend() {
+    const { socket, app } = this.ctx;
+    const { friendType, method, peer } = this.ctx.args[0];
+    // if (method === 'auth')
+  }
 }
 
 module.exports = GroupController;
