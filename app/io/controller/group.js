@@ -87,6 +87,30 @@ class GroupController extends Controller {
     }
     socket.emit('getMyGroup', { friendType, groups });
   }
+  async editGroup() {
+    const { socket, app } = this.ctx;
+    const { type, method, value, key } = this.ctx.args[0];
+    switch (method) {
+      case 'add':
+        await app.mysql.query(`
+        INSERT INTO userGroupInfo(email,groupName,type) VALUES('${socket.id}','${value}','${type}')
+        `);
+        break;
+      case 'delete':
+        await app.mysql.query(`
+        DELETE FROM userGroupInfo where \`key\` = ${key} AND email = '${socket.id}' AND type = '${type}'
+        `);
+        break;
+      case 'rename':
+        await app.mysql.query(`
+        UPDATE userGroupInfo SET groupName = '${value}' WHERE \`key\` = ${key} AND email = '${socket.id}' AND type = '${type}'
+        `);
+        break;
+      default:
+        break;
+    }
+    socket.emit('editGroup', this.ctx.args[0]);
+  }
 }
 
 module.exports = GroupController;
