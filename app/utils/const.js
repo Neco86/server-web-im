@@ -39,6 +39,12 @@ const MSG_TYPE = {
   GROUP_NOTICE: '5',
 };
 
+// 群聊通知消息类型
+const GROUP_NOTICE_TYPE = {
+  JOIN: '1',
+  EXIT: '2',
+};
+
 // permit 群聊权限
 const GROUP_PERMIT = {
   OWNER: '1',
@@ -61,5 +67,5 @@ const EDIT_FRIEND = {
 module.exports = {
   SUCCESS_CODE, ERROR_CODE, DEFAULT_ROOM, USER_STATUS, GROUP_TYPE,
   SEARCH_TYPE, FRIEND_TYPE, MSG_TYPE, GROUP_PERMIT, EDIT_GROUP,
-  EDIT_FRIEND,
+  EDIT_FRIEND, GROUP_NOTICE_TYPE,
 };
