@@ -1,7 +1,8 @@
 'use strict';
 
 const Controller = require('egg').Controller;
-const { FRIEND_TYPE, USER_STATUS, EDIT_GROUP } = require('../../utils/const');
+const { FRIEND_TYPE, USER_STATUS, EDIT_GROUP, EDIT_FRIEND, GROUP_PERMIT,
+  MSG_TYPE } = require('../../utils/const');
 
 class GroupController extends Controller {
   async getMyGroup() {
@@ -113,8 +114,91 @@ class GroupController extends Controller {
   }
   async editFriend() {
     const { socket, app } = this.ctx;
-    const { friendType, method, peer } = this.ctx.args[0];
-    // TODO: 处理删除好友/退出群聊/解散群聊/授权群主
+    // type: EDIT_FRIEND ,value: email/chatKey
+    const { type, value } = this.ctx.args[0];
+    const nsp = app.io.of('/');
+    const users = await app.mysql.query(`
+    SELECT * FROM groupMemberInfo WHERE
+    (chatKey = '${value}')
+    AND ( permit = '${GROUP_PERMIT.OWNER}' || permit = '${GROUP_PERMIT.MANAGER}' );
+    `);
+    const selfInfo = await app.mysql.query(`
+      SELECT * FROM userInfo where email = '${socket.id}'
+    `);
+    switch (type) {
+      // 删除好友
+      case EDIT_FRIEND.DELETE_FRIEND:
+        await app.mysql.query(`
+        DELETE FROM userChatInfo where email = '${socket.id}' AND peer = '${value}' AND type = '${FRIEND_TYPE.FRIEND}'
+        `);
+        await app.mysql.query(`
+        DELETE FROM userChatInfo where email = '${value}' AND peer = '${socket.id}' AND type = '${FRIEND_TYPE.FRIEND}'
+        `);
+        if (nsp.sockets[value]) {
+          nsp.sockets[value].emit('deleteFriend');
+        }
+        break;
+      // 退出群聊
+      case EDIT_FRIEND.EXIT_GROUP:
+        await app.mysql.query(`
+        DELETE FROM userChatInfo where email = '${socket.id}' AND peer = '${value}' AND type = '${FRIEND_TYPE.GROUP}'
+        `);
+        await app.mysql.query(`
+        DELETE FROM groupMemberInfo where email = '${socket.id}' AND chatKey = '${value}'
+        `);
+        for (let i = 0; i < users.length; i++) {
+          const user = users[i];
+          // 给群主和群管理发消息
+          if (nsp.sockets[user.email]) {
+            const userInfo = await app.mysql.query(`
+            SELECT * FROM userChatInfo where email = '${user.email}' AND peer = '${socket.id}' AND type = '${FRIEND_TYPE.FRIEND}'
+            `);
+            const groupInfo = await app.mysql.query(`
+            SELECT * FROM groupCommonInfo where chatKey = '${value}'
+            `);
+            const groupRemarkName = await app.mysql.query(`
+            SELECT * FROM userChatInfo where email = '${user.email}' AND peer = '${value}' AND type = '${FRIEND_TYPE.GROUP}'
+            `);
+            nsp.sockets[user.email].emit('exitGroup', {
+              avatar: selfInfo[0].avatar,
+              nickname: (userInfo[0].remarkName || selfInfo[0].nickname),
+              email: selfInfo[0].email,
+              groupName: groupRemarkName[0].remarkName || groupInfo.nickName,
+              groupAvatar: groupRemarkName[0].avatar,
+              chatKey: value,
+            });
+          }
+        }
+        await app.mysql
+          .query('INSERT INTO chat(email, peer, msg, timestamp,msgType,type) VALUES(?,?,?,?,?,?)',
+            [
+              socket.id,
+              value,
+              JSON.stringify({ groupKey: value }),
+              String(Date.now()),
+              MSG_TYPE.EXIT_FRIEND,
+              FRIEND_TYPE.GROUP,
+            ]);
+        break;
+      // 解散群聊
+      case EDIT_FRIEND.DELETE_GROUP:
+        await app.mysql.query(`
+        DELETE FROM userChatInfo where email = '${socket.id}' AND peer = '${value}' AND type = '${FRIEND_TYPE.GROUP}'
+        `);
+        await app.mysql.query(`
+        DELETE FROM groupCommonInfo where chatKey = '${value}'
+        `);
+        await app.mysql.query(`
+        DELETE FROM groupMemberInfo where chatKey = '${value}'
+        `);
+        if (nsp.sockets[value]) {
+          nsp.sockets[value].emit('deleteGroup');
+        }
+        break;
+      default:
+        break;
+    }
+    socket.emit('editFriend', this.ctx.args[0]);
   }
 }
 

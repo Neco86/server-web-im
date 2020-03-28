@@ -30,6 +30,7 @@ const MSG_TYPE = {
   COMMON_CHAT: '1',
   FILE: '2',
   APPLY_FRIEND: '3',
+  EXIT_FRIEND: '4',
 };
 
 // permit 群聊权限
@@ -45,8 +46,14 @@ const EDIT_GROUP = {
   DELETE: 'delete',
   RENAME: 'rename',
 };
+const EDIT_FRIEND = {
+  DELETE_FRIEND: 'deleteFriend',
+  DELETE_GROUP: 'deleteGroup',
+  EXIT_GROUP: 'exitGroup',
+};
 
 module.exports = {
   SUCCESS_CODE, ERROR_CODE, DEFAULT_ROOM, USER_STATUS, GROUP_TYPE,
   SEARCH_TYPE, FRIEND_TYPE, MSG_TYPE, GROUP_PERMIT, EDIT_GROUP,
+  EDIT_FRIEND,
 };

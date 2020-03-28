@@ -32,7 +32,7 @@ module.exports = app => {
   // 获取分组
   io.of('/').route('getMyGroup', io.controller.group.getMyGroup);
   io.of('/').route('editGroup', io.controller.group.editGroup);
-  io.of('/').route('editFriends', io.controller.group.editFriends);
+  io.of('/').route('editFriend', io.controller.group.editFriend);
   // 修改好友/群聊数据
   io.of('/').route('changeFriendInfo', io.controller.changeInfo.changeFriendInfo);
   io.of('/').route('changeGroupInfo', io.controller.changeInfo.changeGroupInfo);
