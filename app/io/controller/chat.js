@@ -1,7 +1,7 @@
 'use strict';
 
 const Controller = require('egg').Controller;
-const { FRIEND_TYPE, MSG_TYPE, GROUP_PERMIT } = require('../../utils/const');
+const { FRIEND_TYPE, MSG_TYPE, GROUP_PERMIT, FRIEND_APPLY } = require('../../utils/const');
 
 class ChatController extends Controller {
   async addFriend() {
@@ -21,6 +21,41 @@ class ChatController extends Controller {
           reason,
           type: friendType,
         });
+      }
+      // 申请过
+      const applied = await app.mysql
+        .query(`SELECT * FROM chat WHERE 
+      (email = '${socket.id}' )
+      AND (peer = '${account}' )
+      AND (type = '${friendType}')
+      AND (msgType= '${MSG_TYPE.APPLY_FRIEND}')`);
+      if (applied.length > 0) {
+        await app.mysql
+          .query(`
+          UPDATE chat
+          SET
+          msg = '${JSON.stringify({ groupKey, remarkName, reason })}'
+          ,timestamp = '${String(Date.now())}'
+          WHERE 
+          email = '${socket.id}' 
+          AND peer = '${account}' 
+          AND type = '${friendType}'
+          AND msgType= '${MSG_TYPE.APPLY_FRIEND}'`);
+      } else {
+        await app.mysql
+          .query('INSERT INTO chat(email,peer,msg,timestamp,msgType,type) VALUES(?,?,?,?,?,?)',
+            [
+              socket.id,
+              account,
+              JSON.stringify({
+                groupKey,
+                remarkName,
+                reason,
+              }),
+              String(Date.now()),
+              MSG_TYPE.APPLY_FRIEND,
+              friendType,
+            ]);
       }
     }
     // 添加群聊
@@ -49,41 +84,43 @@ class ChatController extends Controller {
             groupName: groupRemarkName[0].remarkName || groupInfo[0].nickname,
           });
         }
+        // 申请过
+        const applied = await app.mysql
+          .query(`SELECT * FROM chat WHERE 
+          (email = '${socket.id}' )
+          AND (peer = '${user}' )
+          AND (type = '${friendType}')
+          AND (msgType= '${MSG_TYPE.APPLY_FRIEND}')`);
+        if (applied.length > 0) {
+          await app.mysql
+            .query(`
+            UPDATE chat
+            SET
+            msg = '${JSON.stringify({ chatKey: account, groupKey, remarkName, reason })}'
+            ,timestamp = '${String(Date.now())}'
+            WHERE 
+            email = '${socket.id}' 
+            AND peer = '${user}' 
+            AND type = '${friendType}'
+            AND msgType= '${MSG_TYPE.APPLY_FRIEND}'`);
+        } else {
+          await app.mysql
+            .query('INSERT INTO chat(email,peer,msg,timestamp,msgType,type) VALUES(?,?,?,?,?,?)',
+              [
+                socket.id,
+                user,
+                JSON.stringify({
+                  chatKey: account,
+                  groupKey,
+                  remarkName,
+                  reason,
+                }),
+                String(Date.now()),
+                MSG_TYPE.APPLY_FRIEND,
+                friendType,
+              ]);
+        }
       }
-    }
-    // 申请过且没别处理的
-    const applied = await app.mysql
-      .query(`SELECT * FROM chat WHERE 
-      (email = '${socket.id}' )
-      AND (peer = '${account}' )
-      AND (type = '${friendType}')
-      AND (msgType= '${MSG_TYPE.APPLY_FRIEND}')`);
-    if (applied.length > 0) {
-      await app.mysql
-        .query(`
-        UPDATE chat
-        SET
-        msg = '${JSON.stringify({ groupKey, remarkName, reason })}'
-        ,timestamp = '${String(Date.now())}'
-        WHERE 
-        email = '${socket.id}' 
-        AND peer = '${account}' 
-        AND type = '${friendType}'
-        AND msgType= '${MSG_TYPE.APPLY_FRIEND}'`);
-    } else {
-      await app.mysql
-        .query('INSERT INTO chat(email,peer,msg,timestamp,msgType,type) VALUES(?,?,?,?,?,?)',
-          [
-            socket.id,
-            account,
-            JSON.stringify({
-              groupKey,
-              remarkName,
-            }),
-            String(Date.now()),
-            MSG_TYPE.APPLY_FRIEND,
-            friendType,
-          ]);
     }
     socket.emit('addFriend', {
       account,
@@ -128,6 +165,22 @@ class ChatController extends Controller {
         });
       }
     }
+  }
+  async getFriendApply() {
+    //                  msgType            type
+    //                  MSG_TYPE       FRIEND_TYPE
+    // 申请      好友   APPLY_FRIEND       FRIEND
+    // 申请      群组   APPLY_FRIEND       GROUP
+    // 退出      群组   EXIT_FRIEND        GROUP
+    // 同意      好友   AGREE_FRIEND       FRIEND
+    // 同意      群组   AGREE_FRIEND       GROUP
+    // 拒绝      好友   DISAGREE_FRIEND    FRIEND
+    // 拒绝      群组   DISAGREE_FRIEND    GROUP
+
+    // chat.email === socked.id 我 申请/同意/拒绝
+    // cha.peer   === socked.id    申请/同意/拒绝 我
+    // const { socket, app } = this.ctx;
+    // TODO: 查新并返回数据
   }
 }
 

@@ -29,6 +29,8 @@ module.exports = app => {
   // 通知上下线
   io.of('/').route('online', io.controller.chat.online);
   io.of('/').route('offline', io.controller.chat.offline);
+  // 获取好友通知
+  io.of('/').route('getFriendApply', io.controller.chat.getFriendApply);
   // 获取分组
   io.of('/').route('getMyGroup', io.controller.group.getMyGroup);
   io.of('/').route('editGroup', io.controller.group.editGroup);

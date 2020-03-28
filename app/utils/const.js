@@ -29,8 +29,14 @@ const FRIEND_TYPE = {
 const MSG_TYPE = {
   COMMON_CHAT: '1',
   FILE: '2',
+  // 申请加好友/群聊
   APPLY_FRIEND: '3',
+  // 退出群聊
   EXIT_FRIEND: '4',
+  // 已经同意好友/群聊
+  AGREE_FRIEND: '5',
+  // 已经拒绝好友/群聊
+  DISAGREE_FRIEND: '6',
 };
 
 // permit 群聊权限

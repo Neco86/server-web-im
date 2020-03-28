@@ -168,17 +168,17 @@ class GroupController extends Controller {
               chatKey: value,
             });
           }
+          await app.mysql
+            .query('INSERT INTO chat(email, peer, msg, timestamp,msgType,type) VALUES(?,?,?,?,?,?)',
+              [
+                socket.id,
+                user.email,
+                JSON.stringify({ chatKey: value }),
+                String(Date.now()),
+                MSG_TYPE.EXIT_FRIEND,
+                FRIEND_TYPE.GROUP,
+              ]);
         }
-        await app.mysql
-          .query('INSERT INTO chat(email, peer, msg, timestamp,msgType,type) VALUES(?,?,?,?,?,?)',
-            [
-              socket.id,
-              value,
-              JSON.stringify({ groupKey: value }),
-              String(Date.now()),
-              MSG_TYPE.EXIT_FRIEND,
-              FRIEND_TYPE.GROUP,
-            ]);
         break;
       // 解散群聊
       case EDIT_FRIEND.DELETE_GROUP:
