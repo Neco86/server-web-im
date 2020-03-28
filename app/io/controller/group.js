@@ -180,8 +180,12 @@ class GroupController extends Controller {
         await app.mysql.query(`
         DELETE FROM groupMemberInfo where chatKey = '${value}'
         `);
-        if (nsp.sockets[value]) {
-          nsp.sockets[value].emit('deleteGroup');
+        for (let i = 0; i < users.length; i++) {
+          const user = users[i];
+          // 给所有人发消息
+          if (nsp.sockets[user.email]) {
+            nsp.sockets[user.email].emit('deleteGroup');
+          }
         }
         break;
       default:
