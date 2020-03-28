@@ -27,16 +27,16 @@ const FRIEND_TYPE = {
 
 // msgType 聊天信息类型
 const MSG_TYPE = {
+  // 普通消息
   COMMON_CHAT: '1',
-  FILE: '2',
   // 申请加好友/群聊
-  APPLY_FRIEND: '3',
-  // 退出群聊
-  EXIT_FRIEND: '4',
-  // 已经同意好友/群聊
-  AGREE_FRIEND: '5',
-  // 已经拒绝好友/群聊
-  DISAGREE_FRIEND: '6',
+  APPLY_FRIEND: '2',
+  // 同意好友/群聊
+  AGREE_FRIEND: '3',
+  // 拒绝好友/群聊
+  DISAGREE_FRIEND: '4',
+  // 群聊通知消息
+  GROUP_NOTICE: '5',
 };
 
 // permit 群聊权限

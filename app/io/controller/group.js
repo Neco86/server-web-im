@@ -175,7 +175,7 @@ class GroupController extends Controller {
                 user.email,
                 JSON.stringify({ chatKey: value }),
                 String(Date.now()),
-                MSG_TYPE.EXIT_FRIEND,
+                MSG_TYPE.GROUP_NOTICE,
                 FRIEND_TYPE.GROUP,
               ]);
         }

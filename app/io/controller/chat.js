@@ -1,7 +1,7 @@
 'use strict';
 
 const Controller = require('egg').Controller;
-const { FRIEND_TYPE, MSG_TYPE, GROUP_PERMIT, FRIEND_APPLY } = require('../../utils/const');
+const { FRIEND_TYPE, MSG_TYPE, GROUP_PERMIT } = require('../../utils/const');
 
 class ChatController extends Controller {
   async addFriend() {
@@ -171,7 +171,6 @@ class ChatController extends Controller {
     //                  MSG_TYPE       FRIEND_TYPE
     // 申请      好友   APPLY_FRIEND       FRIEND
     // 申请      群组   APPLY_FRIEND       GROUP
-    // 退出      群组   EXIT_FRIEND        GROUP
     // 同意      好友   AGREE_FRIEND       FRIEND
     // 同意      群组   AGREE_FRIEND       GROUP
     // 拒绝      好友   DISAGREE_FRIEND    FRIEND
