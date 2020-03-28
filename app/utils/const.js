@@ -35,14 +35,6 @@ const MSG_TYPE = {
   AGREE_FRIEND: '3',
   // 拒绝好友/群聊
   DISAGREE_FRIEND: '4',
-  // 群聊通知消息
-  GROUP_NOTICE: '5',
-};
-
-// 群聊通知消息类型
-const GROUP_NOTICE_TYPE = {
-  JOIN: '1',
-  EXIT: '2',
 };
 
 // permit 群聊权限

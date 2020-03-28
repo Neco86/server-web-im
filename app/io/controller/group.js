@@ -1,8 +1,7 @@
 'use strict';
 
 const Controller = require('egg').Controller;
-const { FRIEND_TYPE, USER_STATUS, EDIT_GROUP, EDIT_FRIEND, GROUP_PERMIT,
-  MSG_TYPE, GROUP_NOTICE_TYPE } = require('../../utils/const');
+const { FRIEND_TYPE, USER_STATUS, EDIT_GROUP, EDIT_FRIEND, GROUP_PERMIT } = require('../../utils/const');
 
 class GroupController extends Controller {
   async getMyGroup() {
@@ -169,16 +168,6 @@ class GroupController extends Controller {
             });
           }
         }
-        await app.mysql
-          .query('INSERT INTO chat(email, peer, msg, timestamp,msgType,type) VALUES(?,?,?,?,?,?)',
-            [
-              socket.id,
-              value,
-              JSON.stringify({ groupNoticeType: GROUP_NOTICE_TYPE.EXIT }),
-              String(Date.now()),
-              MSG_TYPE.GROUP_NOTICE,
-              FRIEND_TYPE.GROUP,
-            ]);
         break;
       // 解散群聊
       case EDIT_FRIEND.DELETE_GROUP:
