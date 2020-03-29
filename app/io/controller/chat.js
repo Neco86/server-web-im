@@ -175,11 +175,128 @@ class ChatController extends Controller {
     // 同意      群组   AGREE_FRIEND       GROUP
     // 拒绝      好友   DISAGREE_FRIEND    FRIEND
     // 拒绝      群组   DISAGREE_FRIEND    GROUP
-
-    // chat.email === socked.id 我 申请/同意/拒绝
-    // cha.peer   === socked.id    申请/同意/拒绝 我
-    // const { socket, app } = this.ctx;
-    // TODO: 查新并返回数据
+    const { socket, app } = this.ctx;
+    const applies = (await app.mysql
+      .query(`SELECT * FROM chat WHERE 
+      (email = '${socket.id}' OR peer = '${socket.id}')
+      AND (msgType = '${MSG_TYPE.APPLY_FRIEND}' OR msgType = '${MSG_TYPE.AGREE_FRIEND}' OR msgType = '${MSG_TYPE.DISAGREE_FRIEND}')
+      AND (type = '${FRIEND_TYPE.FRIEND}' OR type = '${FRIEND_TYPE.GROUP}')
+      `)).sort((a, b) => b.timestamp - a.timestamp);
+    const friendApply = [];
+    for (let i = 0; i < applies.length; i++) {
+      const { email, peer, msgType, type, msg } = applies[i];
+      const { reason, chatKey } = JSON.parse(msg);
+      const peerInfo =
+        ((await app.mysql.query(`SELECT * FROM userInfo WHERE email = '${email === socket.id ? peer : email}'`))
+          .map(item => ({
+            email: item.email,
+            nickname: item.nickname,
+            avatar: item.avatar,
+          })))[0];
+      const groupInfo =
+        ((await app.mysql.query(`SELECT * FROM groupCommonInfo WHERE chatKey = '${chatKey}'`))
+          .map(item => ({
+            chatKey: item.chatKey,
+            nickname: item.nickname,
+            avatar: item.avatar,
+          })))[0];
+      friendApply.push({
+        peerInfo,
+        groupInfo,
+        reason,
+        my: email === socket.id,
+        apply: msgType === MSG_TYPE.APPLY_FRIEND,
+        agree: msgType === MSG_TYPE.AGREE_FRIEND,
+        disagree: msgType === MSG_TYPE.DISAGREE_FRIEND,
+        friend: type === FRIEND_TYPE.FRIEND,
+      });
+    }
+    socket.emit('getFriendApply', friendApply);
+  }
+  async handleApply() {
+    const { socket, app } = this.ctx;
+    const { agree, friend, email, chatKey, remarkName, group } = this.ctx.args[0];
+    const msg = JSON.parse((await app.mysql.query(`
+      SELECT * FROM  chat WHERE email = '${email}' AND peer = '${socket.id}'
+    `)).sort((a, b) => b.timestamp - a.timestamp)[0].msg);
+    const nsp = app.io.of('/');
+    if (friend) {
+      await app.mysql.query(`
+          UPDATE chat 
+          SET msgType = '${agree ? MSG_TYPE.AGREE_FRIEND : MSG_TYPE.DISAGREE_FRIEND}',
+          timestamp = '${String(Date.now())}'
+          WHERE email = '${email}' 
+          AND peer = '${socket.id}' 
+          AND msgType = '${MSG_TYPE.APPLY_FRIEND}'
+          AND type = '${FRIEND_TYPE.FRIEND}'
+        `);
+      await app.mysql.query(`
+        UPDATE chat 
+        SET msgType = '${agree ? MSG_TYPE.AGREE_FRIEND : MSG_TYPE.DISAGREE_FRIEND}',
+        timestamp = '${String(Date.now())}'
+        WHERE email = '${socket.id}' 
+        AND peer = '${email}' 
+        AND msgType = '${MSG_TYPE.APPLY_FRIEND}'
+        AND type = '${FRIEND_TYPE.FRIEND}'
+      `);
+      if (agree) {
+        await app.mysql.query(`
+          INSERT INTO 
+          userChatInfo(email,peer,type,groupKey,remarkName)
+          VALUES('${socket.id}','${email}','${FRIEND_TYPE.FRIEND}','${group}','${remarkName}')
+        `);
+        await app.mysql.query(`
+          INSERT INTO 
+          userChatInfo(email,peer,type,groupKey,remarkName)
+          VALUES('${email}','${socket.id}','${FRIEND_TYPE.FRIEND}','${msg.groupKey}','${msg.remarkName}')
+        `);
+      }
+      if (nsp.sockets[email]) {
+        const userInfo = (await app.mysql
+          .query(`SELECT * FROM userInfo WHERE email = '${socket.id}'`))[0];
+        nsp.sockets[email].emit('handledApply', {
+          email: userInfo.email,
+          nickname: userInfo.nickname,
+          avatar: userInfo.avatar,
+          friend,
+          agree,
+        });
+      }
+    } else {
+      await app.mysql.query(`
+          UPDATE chat 
+          SET msgType = '${agree ? MSG_TYPE.AGREE_FRIEND : MSG_TYPE.DISAGREE_FRIEND}',
+          timestamp = '${String(Date.now())}'
+          WHERE email = '${email}' 
+          AND msg LIKE '%"chatKey":"${chatKey}"%' 
+          AND msgType = '${MSG_TYPE.APPLY_FRIEND}'
+          AND type = '${FRIEND_TYPE.GROUP}'
+        `);
+      if (agree) {
+        await app.mysql.query(`
+          INSERT INTO
+          userChatInfo(email,peer,type,groupKey,remarkName)
+          VALUES('${email}','${chatKey}','${FRIEND_TYPE.GROUP}','${msg.groupKey}','${msg.remarkName}')
+        `);
+        await app.mysql.query(`
+          INSERT INTO
+          groupMemberInfo(chatKey,email,permit)
+          VALUES('${chatKey}','${email}','${GROUP_PERMIT.MEMBER}')
+        `);
+      }
+      if (nsp.sockets[email]) {
+        const userInfo = (await app.mysql
+          .query(`SELECT * FROM groupCommonInfo WHERE chatKey = '${chatKey}'`))[0];
+        nsp.sockets[email].emit('handledApply', {
+          chatKey: userInfo.chatKey,
+          nickname: userInfo.nickname,
+          avatar: userInfo.avatar,
+          friend,
+          agree,
+        });
+      }
+    }
+    socket.emit('handleApply', this.ctx.args[0]);
   }
 }
 

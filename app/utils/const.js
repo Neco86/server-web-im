@@ -35,6 +35,8 @@ const MSG_TYPE = {
   AGREE_FRIEND: '3',
   // 拒绝好友/群聊
   DISAGREE_FRIEND: '4',
+  // 通知消息
+  NOTICE: '5',
 };
 
 // permit 群聊权限
@@ -59,5 +61,5 @@ const EDIT_FRIEND = {
 module.exports = {
   SUCCESS_CODE, ERROR_CODE, DEFAULT_ROOM, USER_STATUS, GROUP_TYPE,
   SEARCH_TYPE, FRIEND_TYPE, MSG_TYPE, GROUP_PERMIT, EDIT_GROUP,
-  EDIT_FRIEND, GROUP_NOTICE_TYPE,
+  EDIT_FRIEND,
 };
