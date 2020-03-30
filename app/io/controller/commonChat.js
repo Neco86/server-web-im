@@ -7,7 +7,7 @@ class CommonChatController extends Controller {
   async getRecentChat() {
     const { socket, app } = this.ctx;
     const recentChats = [];
-    const userRecent = await app.mysql.query(`SELECT * FROM userRecent WHERE email = '${socket.id}'`);
+    const userRecent = await app.mysql.query(`SELECT * FROM userRecent WHERE email = '${socket.id}' ORDER BY \`key\` DESC`);
     for (let i = 0; i < userRecent.length; i++) {
       const { peer, unread, msg, timestamp, type } = userRecent[i];
       const peerInfo = { type, peer, avatar: '', name: '', msg, unread, timestamp };
@@ -36,6 +36,59 @@ class CommonChatController extends Controller {
       recentChats.push(peerInfo);
     }
     socket.emit('setRecentChat', recentChats);
+  }
+  async setRecentChat() {
+    const { socket, app } = this.ctx;
+    const { peer, type, unread, msg } = this.ctx.args[0];
+    const source = await app.mysql.query(`
+      SELECT * FROM userRecent
+      WHERE email = '${socket.id}' 
+      AND peer = '${peer}'
+      AND type = '${type}'
+      `);
+    if (source.length === 0) {
+      // 插入新的
+      await app.mysql.query(`
+      INSERT INTO userRecent
+      (email,peer,unread,msg,timestamp,type)
+      VALUES('${socket.id}','${peer}','0','','','${type}' )
+      `);
+    } else {
+      if (msg !== undefined) {
+        // 更新消息
+        await app.mysql.query(`
+        UPDATE userRecent
+        SET 
+        msg = '${msg}',
+        unread = '${unread}',
+        timestamp = '${String(Date.now())}'
+        WHERE email = '${socket.id}' 
+        AND peer = '${peer}'
+        AND type = '${type}'
+        `);
+      }
+      if (unread !== undefined) {
+        // 更新未读
+        await app.mysql.query(`
+        UPDATE userRecent
+        SET 
+        unread = '${unread}'
+        WHERE email = '${socket.id}' 
+        AND peer = '${peer}'
+        AND type = '${type}'
+        `);
+      }
+      if (msg === undefined && unread === undefined) {
+        // 删除
+        await app.mysql.query(`
+        DELETE from userRecent
+        WHERE email = '${socket.id}' 
+        AND peer = '${peer}'
+        AND type = '${type}'
+        `);
+      }
+    }
+    socket.emit('updateRecentChat');
   }
 }
 

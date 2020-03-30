@@ -7,7 +7,7 @@ class ChangeInfoController extends Controller {
   async changeFriendInfo() {
     const { socket, app } = this.ctx;
     const { email, value, type } = this.ctx.args[0];
-    // console.log(email, value, type)
+    // (email, value, type)
     // 好友test1@test.com test1的1 remarkName
     // 好友test1@test.com 3 groupKey
     await app.mysql
@@ -25,7 +25,7 @@ class ChangeInfoController extends Controller {
   async changeGroupInfo() {
     const { socket, app } = this.ctx;
     const { changedChatKey, value, type } = this.ctx.args[0];
-    // console.log(changedChatKey, value, type);
+    // (changedChatKey, value, type);
     // 57 test2群聊1 nickname
     // 57 12 remarkName
     // 57 5 group

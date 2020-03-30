@@ -44,4 +44,5 @@ module.exports = app => {
   io.of('/').route('changeGroupInfo', io.controller.changeInfo.changeGroupInfo);
   // 普通聊天
   io.of('/').route('getRecentChat', io.controller.commonChat.getRecentChat);
+  io.of('/').route('setRecentChat', io.controller.commonChat.setRecentChat);
 };
