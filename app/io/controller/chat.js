@@ -220,25 +220,27 @@ class ChatController extends Controller {
       SELECT * FROM  chat WHERE email = '${email}' AND peer = '${socket.id}'
     `)).sort((a, b) => b.timestamp - a.timestamp)[0].msg);
     const nsp = app.io.of('/');
+    // 同意/拒绝好友
     if (friend) {
+      // 更新chat的我的信息
       await app.mysql.query(`
           UPDATE chat 
-          SET msgType = '${agree ? MSG_TYPE.AGREE_FRIEND : MSG_TYPE.DISAGREE_FRIEND}',
-          timestamp = '${String(Date.now())}'
+          SET msgType = '${agree ? MSG_TYPE.AGREE_FRIEND : MSG_TYPE.DISAGREE_FRIEND}'
           WHERE email = '${email}' 
           AND peer = '${socket.id}' 
           AND msgType = '${MSG_TYPE.APPLY_FRIEND}'
           AND type = '${FRIEND_TYPE.FRIEND}'
         `);
+      // 更新chat里对面信息
       await app.mysql.query(`
         UPDATE chat 
-        SET msgType = '${agree ? MSG_TYPE.AGREE_FRIEND : MSG_TYPE.DISAGREE_FRIEND}',
-        timestamp = '${String(Date.now())}'
+        SET msgType = '${agree ? MSG_TYPE.AGREE_FRIEND : MSG_TYPE.DISAGREE_FRIEND}'
         WHERE email = '${socket.id}' 
         AND peer = '${email}' 
         AND msgType = '${MSG_TYPE.APPLY_FRIEND}'
         AND type = '${FRIEND_TYPE.FRIEND}'
       `);
+      // 如果同意,双方通讯录添加好友
       if (agree) {
         await app.mysql.query(`
           INSERT INTO 
@@ -251,6 +253,7 @@ class ChatController extends Controller {
           VALUES('${email}','${socket.id}','${FRIEND_TYPE.FRIEND}','${msg.groupKey}','${msg.remarkName}')
         `);
       }
+      // 在线通知
       if (nsp.sockets[email]) {
         const userInfo = (await app.mysql
           .query(`SELECT * FROM userInfo WHERE email = '${socket.id}'`))[0];
@@ -262,16 +265,17 @@ class ChatController extends Controller {
           agree,
         });
       }
-    } else {
+    } else { // 同意/拒绝群聊申请
+      // 更新chat
       await app.mysql.query(`
           UPDATE chat 
-          SET msgType = '${agree ? MSG_TYPE.AGREE_FRIEND : MSG_TYPE.DISAGREE_FRIEND}',
-          timestamp = '${String(Date.now())}'
+          SET msgType = '${agree ? MSG_TYPE.AGREE_FRIEND : MSG_TYPE.DISAGREE_FRIEND}'
           WHERE email = '${email}' 
-          AND msg LIKE '%"chatKey":"${chatKey}"%' 
+          AND JSON_EXTRACT(chat.msg,'$.chatKey') = '${chatKey}'
           AND msgType = '${MSG_TYPE.APPLY_FRIEND}'
           AND type = '${FRIEND_TYPE.GROUP}'
         `);
+      // 同意加入聊天表和群成员表
       if (agree) {
         await app.mysql.query(`
           INSERT INTO
@@ -284,6 +288,7 @@ class ChatController extends Controller {
           VALUES('${chatKey}','${email}','${GROUP_PERMIT.MEMBER}')
         `);
       }
+      // 上线通知
       if (nsp.sockets[email]) {
         const userInfo = (await app.mysql
           .query(`SELECT * FROM groupCommonInfo WHERE chatKey = '${chatKey}'`))[0];
