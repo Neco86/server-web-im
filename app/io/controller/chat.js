@@ -303,6 +303,32 @@ class ChatController extends Controller {
     }
     socket.emit('handleApply', this.ctx.args[0]);
   }
+  async createGroup() {
+    const { socket, app } = this.ctx;
+    const { member, group } = this.ctx.args[0];
+    const selfInfo = (await app.mysql.query(`SELECT * FROM userInfo WHERE email = '${socket.id}'`))[0];
+    const lastInfo = (await app.mysql.query('SELECT * FROM groupCommonInfo ORDER BY chatKey DESC LIMIT 1'))[0];
+    const chatKey = Number(lastInfo.chatKey) + 1;
+    const nickname = `${selfInfo.nickname}创建的群聊`;
+    const nsp = app.io.of('/');
+    const myGroup = (await app.mysql.query(`SELECT * FROM userGroupInfo WHERE email = '${socket.id}' AND \`key\` = '${group}' AND type = '${FRIEND_TYPE.GROUP}'`))[0];
+    // 添加groupCommonInfo
+    await app.mysql.query(`INSERT INTO groupCommonInfo(chatKey,nickname) VALUES('${chatKey}','${nickname}')`);
+    for (let i = 0; i < member.length; i++) {
+      // 添加groupMemberInfo
+      await app.mysql.query(`INSERT INTO groupMemberInfo(chatKey,email,permit) 
+      VALUES('${chatKey}','${member[i]}','${member[i] === socket.id ? GROUP_PERMIT.OWNER : GROUP_PERMIT.MEMBER}')`);
+      // 添加chatInfo
+      const memberGroup = (await app.mysql.query(`SELECT * FROM userGroupInfo WHERE email = '${member[i]}' AND type = '${FRIEND_TYPE.GROUP}' ORDER BY \`key\` LIMIT 1`))[0];
+      await app.mysql.query(`INSERT INTO userChatInfo(email,peer,type,groupKey)
+      VALUES('${member[i]}','${chatKey}','${FRIEND_TYPE.GROUP}','${member[i] === socket.id ? group : memberGroup.key}')`);
+      // 在线发消息
+      if (nsp.sockets[member[i]]) {
+        nsp.sockets[member[i]].emit('createGroup',
+          { my: member[i] === socket.id, chatKey, nickname, groupName: member[i] === socket.id ? myGroup.groupName : memberGroup.groupName });
+      }
+    }
+  }
 }
 
 module.exports = ChatController;

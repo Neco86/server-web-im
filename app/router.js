@@ -33,6 +33,8 @@ module.exports = app => {
   io.of('/').route('getFriendApply', io.controller.chat.getFriendApply);
   // 同意/拒绝申请
   io.of('/').route('handleApply', io.controller.chat.handleApply);
+  // 创建分组
+  io.of('/').route('createGroup', io.controller.chat.createGroup);
   // 获取分组
   io.of('/').route('getMyGroup', io.controller.group.getMyGroup);
   io.of('/').route('editGroup', io.controller.group.editGroup);
