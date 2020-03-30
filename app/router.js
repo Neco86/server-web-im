@@ -42,6 +42,6 @@ module.exports = app => {
   // 修改好友/群聊数据
   io.of('/').route('changeFriendInfo', io.controller.changeInfo.changeFriendInfo);
   io.of('/').route('changeGroupInfo', io.controller.changeInfo.changeGroupInfo);
-
-
+  // 普通聊天
+  io.of('/').route('getRecentChat', io.controller.commonChat.getRecentChat);
 };
