@@ -1,7 +1,7 @@
 'use strict';
 
 const Controller = require('egg').Controller;
-const { FRIEND_TYPE } = require('../../utils/const');
+const { FRIEND_TYPE, MSG_TYPE } = require('../../utils/const');
 
 class CommonChatController extends Controller {
   async getRecentChat() {
@@ -48,11 +48,45 @@ class CommonChatController extends Controller {
       `);
     if (source.length === 0) {
       // 插入新的
-      await app.mysql.query(`
-      INSERT INTO userRecent
-      (email,peer,unread,msg,timestamp,type)
-      VALUES('${socket.id}','${peer}','0','','','${type}' )
-      `);
+      let chatInfo = [];
+      // 查询好友最新消息
+      if (type === FRIEND_TYPE.FRIEND) {
+        chatInfo = await app.mysql
+          .query(`
+          SELECT * FROM chat 
+          WHERE (msgType = '${MSG_TYPE.COMMON_CHAT}')
+          AND (type = '${FRIEND_TYPE.FRIEND}')
+          AND (
+            (email = '${socket.id}' AND peer = '${peer}')
+              OR (email = '${peer}' AND peer = '${socket.id}')
+          )
+          ORDER BY timestamp DESC LIMIT 1
+          `);
+      }
+      // 查询群聊最新消息
+      if (type === FRIEND_TYPE.GROUP) {
+        chatInfo = await app.mysql
+          .query(`
+          SELECT * FROM chat 
+          WHERE (msgType = '${MSG_TYPE.COMMON_CHAT}')
+          AND (type = '${FRIEND_TYPE.GROUP}')
+          AND (peer = '${peer}')
+          ORDER BY timestamp DESC LIMIT 1
+          `);
+      }
+      if (chatInfo.length > 0) {
+        await app.mysql.query(`
+        INSERT INTO userRecent
+        (email,peer,unread,msg,timestamp,type)
+        VALUES('${socket.id}','${peer}','0','${chatInfo[0].msg}','${chatInfo[0].timestamp}','${type}' )
+        `);
+      } else {
+        await app.mysql.query(`
+        INSERT INTO userRecent
+        (email,peer,unread,msg,timestamp,type)
+        VALUES('${socket.id}','${peer}','0','','','${type}' )
+        `);
+      }
     } else {
       if (msg !== undefined) {
         // 更新消息
