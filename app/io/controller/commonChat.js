@@ -54,9 +54,84 @@ class CommonChatController extends Controller {
         WHERE ${isMyUserRecentQuery}
         `);
       } else {
-        await app.mysql.query(`INSERT INTO userRecent(email,peer,unread,msg,timestamp,type) 
-        VALUES('${socket.id}','${peer}','${unread}','','','${type}')
-        `);
+        if (type === FRIEND_TYPE.FRIEND) {
+          const lastFriendChat = await app.mysql.query(`
+          SELECT *
+          FROM chat 
+          WHERE msgType = '${MSG_TYPE.COMMON_CHAT}'
+          AND type = '${type}'
+          AND ((email = '${socket.id}' AND peer = '${peer}')
+            OR (email = '${peer}' AND peer = '${socket.id}'))
+          ORDER BY timestamp DESC
+          LIMIT 1
+          `);
+          if (lastFriendChat.length > 0) {
+            await app.mysql.query(`INSERT INTO userRecent(email,peer,unread,msg,timestamp,type) 
+            VALUES('${socket.id}','${peer}','${unread}','${lastFriendChat[0].msg}','${lastFriendChat[0].timestamp}','${type}')
+            `);
+          } else {
+            await app.mysql.query(`INSERT INTO userRecent(email,peer,unread,msg,timestamp,type) 
+            VALUES('${socket.id}','${peer}','${unread}','','','${type}')
+            `);
+          }
+        }
+        if (type === FRIEND_TYPE.GROUP) {
+          const lastMemberChat = await app.mysql.query(`
+          SELECT *
+          FROM chat 
+          WHERE msgType = '${MSG_TYPE.COMMON_CHAT}'
+          AND type = '${type}'
+          AND peer = '${peer}'
+          ORDER BY timestamp DESC
+          LIMIT 1
+          `);
+          if (lastMemberChat.length > 0) {
+            if (lastMemberChat[0].email === socket.id) {
+              const name = (await app.mysql
+                .query(`SELECT * FROM groupMemberInfo
+                      WHERE chatKey = '${peer}' 
+                      AND email = '${socket.id}'
+                      `))[0].memberName
+                ||
+                (await app.mysql
+                  .query(`SELECT * FROM userInfo
+                        WHERE email = '${socket.id}'
+                        `))[0].nickname
+                ;
+              await app.mysql.query(`INSERT INTO userRecent(email,peer,unread,msg,timestamp,type) 
+                VALUES('${socket.id}','${peer}','${unread}','${name}:${lastMemberChat[0].msg}','${lastMemberChat[0].timestamp}','${type}')
+              `);
+            } else {
+              // 群名片/好友备注/昵称
+              const memberName = (await app.mysql
+                .query(`SELECT * FROM groupMemberInfo
+                      WHERE chatKey = '${peer}' 
+                      AND email = '${lastMemberChat[0].email}'
+                      `))[0].memberName
+                ||
+                (await app.mysql
+                  .query(`SELECT * 
+                        FROM userChatInfo 
+                        WHERE email = '${socket.id}' 
+                        AND peer = '${lastMemberChat[0].email}' 
+                        AND type = '${FRIEND_TYPE.FRIEND}'
+                        `))[0].remarkName
+                ||
+                (await app.mysql
+                  .query(`SELECT * FROM userInfo
+                        WHERE email = '${lastMemberChat[0].email}'
+                        `))[0].nickname
+                ;
+              await app.mysql.query(`INSERT INTO userRecent(email,peer,unread,msg,timestamp,type) 
+                VALUES('${socket.id}','${peer}','${unread}','${memberName}:${lastMemberChat[0].msg}','${lastMemberChat[0].timestamp}','${type}')
+              `);
+            }
+          } else {
+            await app.mysql.query(`INSERT INTO userRecent(email,peer,unread,msg,timestamp,type) 
+                VALUES('${socket.id}','${peer}','${unread}','','','${type}')
+              `);
+          }
+        }
       }
       socket.emit('updateRecentChat');
     }
@@ -105,6 +180,7 @@ class CommonChatController extends Controller {
         }
       }
       if (type === FRIEND_TYPE.GROUP) {
+        // 群名/昵称
         const name = (await app.mysql
           .query(`SELECT * FROM groupMemberInfo
                 WHERE chatKey = '${peer}' 
