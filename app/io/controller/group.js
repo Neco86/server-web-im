@@ -121,6 +121,10 @@ class GroupController extends Controller {
     (chatKey = '${value}')
     AND ( permit = '${GROUP_PERMIT.OWNER}' || permit = '${GROUP_PERMIT.MANAGER}' );
     `);
+    const allUser = await app.mysql.query(`
+    SELECT * FROM groupMemberInfo WHERE
+    (chatKey = '${value}')
+    `);
     const selfInfo = await app.mysql.query(`
       SELECT * FROM userInfo where email = '${socket.id}'
     `);
@@ -162,7 +166,7 @@ class GroupController extends Controller {
               avatar: selfInfo[0].avatar,
               nickname: (userInfo[0].remarkName || selfInfo[0].nickname),
               email: selfInfo[0].email,
-              groupName: groupRemarkName[0].remarkName || groupInfo.nickName,
+              groupName: groupRemarkName[0].remarkName || groupInfo[0].nickname,
               groupAvatar: groupRemarkName[0].avatar,
               chatKey: value,
             });
@@ -172,7 +176,7 @@ class GroupController extends Controller {
       // 解散群聊
       case EDIT_FRIEND.DELETE_GROUP:
         await app.mysql.query(`
-        DELETE FROM userChatInfo where email = '${socket.id}' AND peer = '${value}' AND type = '${FRIEND_TYPE.GROUP}'
+        DELETE FROM userChatInfo where peer = '${value}' AND type = '${FRIEND_TYPE.GROUP}'
         `);
         await app.mysql.query(`
         DELETE FROM groupCommonInfo where chatKey = '${value}'
@@ -180,8 +184,8 @@ class GroupController extends Controller {
         await app.mysql.query(`
         DELETE FROM groupMemberInfo where chatKey = '${value}'
         `);
-        for (let i = 0; i < users.length; i++) {
-          const user = users[i];
+        for (let i = 0; i < allUser.length; i++) {
+          const user = allUser[i];
           // 给所有人发消息
           if (nsp.sockets[user.email]) {
             nsp.sockets[user.email].emit('deleteGroup');
