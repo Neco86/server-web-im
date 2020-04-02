@@ -53,7 +53,7 @@ class CommonChatController extends Controller {
         SET unread = '${unread}'
         WHERE ${isMyUserRecentQuery}
         `);
-      } else {
+      } else { // TODO: 文件类型,图片类型
         if (type === FRIEND_TYPE.FRIEND) {
           const lastFriendChat = await app.mysql.query(`
           SELECT *
@@ -258,12 +258,83 @@ class CommonChatController extends Controller {
   }
   async sendMsg() {
     const { socket, app } = this.ctx;
-    const { peer, type, msg } = this.ctx.args[0];
-    // const nsp = app.io.of('/');
+    const { peer, type, msg, msgType } = this.ctx.args[0];
+    const nsp = app.io.of('/');
     await app.mysql.query(`
       INSERT INTO chat(email,peer,msg,timestamp,msgType,type)
-      VALUES('${socket.id}','${peer}','${msg}','${String(Date.now())}','${MSG_TYPE.COMMON_CHAT}','${type}')
+      VALUES('${socket.id}','${peer}','${msg}','${String(Date.now())}','${msgType}','${type}')
     `);
+    const receivedMsg = {
+      key: Date.now(),
+      msg,
+      msgType,
+      peer,
+    };
+    receivedMsg.self = true;
+    socket.emit('receivedMsg', receivedMsg);
+    if (type === FRIEND_TYPE.FRIEND && nsp.sockets[peer]) {
+      receivedMsg.self = false;
+      nsp.sockets[peer].emit('receivedMsg', receivedMsg);
+    }
+    if (type === FRIEND_TYPE.GROUP) {
+      const members = await app.mysql.query(`
+      SELECT * FROM groupMemberInfo WHERE chatKey = '${peer}'
+    `);
+      for (let i = 0; i < members.length; i++) {
+        const member = members[i];
+        if (nsp.sockets[member.email]) {
+          nsp.sockets[member.email].emit('receivedMsg', receivedMsg);
+        }
+      }
+    }
+  }
+  async getChats() {
+    const { socket, app } = this.ctx;
+    const { peer, type, page } = this.ctx.args[0];
+    const PAGE_COUNT = 10;
+    let chats = [];
+    // TODO: 文件,图片类型
+    if (type === FRIEND_TYPE.FRIEND) {
+      chats = (await app.mysql.query(`
+        SELECT * FROM chat
+        WHERE msgType = '${MSG_TYPE.COMMON_CHAT}'
+        AND type = '${type}'
+        AND ( ( email = '${socket.id}' AND peer = '${peer}' ) 
+            OR ( email = '${peer}' AND peer = '${socket.id}' ) )
+        ORDER BY timestamp DESC
+        LIMIT ${(page + 1) * PAGE_COUNT}
+      `))
+        .slice(page * PAGE_COUNT, (page + 1) * PAGE_COUNT)
+        .map(item => (
+          {
+            key: item.key,
+            self: item.email === socket.id,
+            msg: item.msg,
+            msgType: item.msgType,
+          }))
+        .reverse();
+    }
+    if (chats === FRIEND_TYPE.GROUP) {
+      chats = (await app.mysql.query(`
+        SELECT * FROM chat
+        WHERE msgType = '${MSG_TYPE.COMMON_CHAT}'
+        AND type = '${type}'
+        AND peer = '${peer}'
+        ORDER BY timestamp DESC
+        LIMIT ${(page + 1) * PAGE_COUNT}
+      `))
+        .slice(page * PAGE_COUNT, (page + 1) * PAGE_COUNT)
+        .map(item => (
+          {
+            key: item.key,
+            self: item.email === socket.id,
+            peer: item.email,
+            msg: item.msg,
+            msgType: item.msgType,
+          }))
+        .reverse();
+    }
+    socket.emit('setChats', { chats, page, hasMore: chats.length > 0 });
   }
 }
 

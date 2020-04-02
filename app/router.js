@@ -46,4 +46,5 @@ module.exports = app => {
   io.of('/').route('getRecentChat', io.controller.commonChat.getRecentChat);
   io.of('/').route('setRecentChat', io.controller.commonChat.setRecentChat);
   io.of('/').route('sendMsg', io.controller.commonChat.sendMsg);
+  io.of('/').route('getChats', io.controller.commonChat.getChats);
 };
