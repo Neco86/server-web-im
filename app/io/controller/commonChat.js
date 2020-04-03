@@ -265,15 +265,19 @@ class CommonChatController extends Controller {
       VALUES('${socket.id}','${peer}','${msg}','${String(Date.now())}','${msgType}','${type}')
     `);
     const receivedMsg = {
-      key: Date.now(),
+      key: (await app.mysql.query(`
+      SELECT * FROM chat WHERE email = '${socket.id}' AND peer ='${peer}' AND msgType = '${msgType}' AND  type = '${type}'
+      ORDER BY timestamp DESC
+      LIMIT 1
+      `))[0].key,
       msg,
       msgType,
-      peer,
+      peer: socket.id,
     };
     receivedMsg.self = true;
     socket.emit('receivedMsg', receivedMsg);
+    receivedMsg.self = false;
     if (type === FRIEND_TYPE.FRIEND && nsp.sockets[peer]) {
-      receivedMsg.self = false;
       nsp.sockets[peer].emit('receivedMsg', receivedMsg);
     }
     if (type === FRIEND_TYPE.GROUP) {
@@ -282,7 +286,7 @@ class CommonChatController extends Controller {
     `);
       for (let i = 0; i < members.length; i++) {
         const member = members[i];
-        if (nsp.sockets[member.email]) {
+        if (member.email !== socket.id && nsp.sockets[member.email]) {
           nsp.sockets[member.email].emit('receivedMsg', receivedMsg);
         }
       }
@@ -314,7 +318,7 @@ class CommonChatController extends Controller {
           }))
         .reverse();
     }
-    if (chats === FRIEND_TYPE.GROUP) {
+    if (type === FRIEND_TYPE.GROUP) {
       chats = (await app.mysql.query(`
         SELECT * FROM chat
         WHERE msgType = '${MSG_TYPE.COMMON_CHAT}'
@@ -328,13 +332,47 @@ class CommonChatController extends Controller {
           {
             key: item.key,
             self: item.email === socket.id,
+            // peer为来源
             peer: item.email,
             msg: item.msg,
             msgType: item.msgType,
           }))
         .reverse();
     }
-    socket.emit('setChats', { chats, page, hasMore: chats.length > 0 });
+    let hasMore = false;
+    if (page === 0) {
+      hasMore = chats.length === PAGE_COUNT;
+    } else {
+      hasMore = chats.length > 0;
+    }
+    socket.emit('setChats', { chats, page, hasMore });
+  }
+  async getGroupMemberInfo() {
+    const { socket, app } = this.ctx;
+    const { chatKey } = this.ctx.args[0];
+    const memberInfo = [];
+    const members = await app.mysql.query(`
+        SELECT * FROM groupMemberInfo
+        WHERE chatKey = '${chatKey}'
+      `);
+    for (let i = 0; i < members.length; i++) {
+      const member = members[i];
+      const { email, permit, memberName } = member;
+      const { nickname, avatar } = (await app.mysql.query(`SELECT * FROM userInfo WHERE email = '${email}'`))[0] || {};
+      const { remarkName } = (await app.mysql
+        .query(`SELECT * FROM userChatInfo 
+        WHERE email = '${socket.id}'
+        AND peer = '${email}'
+        AND type = '${FRIEND_TYPE.FRIEND}'
+        `))[0] || {};
+      memberInfo.push({
+        email,
+        permit,
+        avatar,
+        name: memberName || remarkName || nickname,
+      });
+    }
+    socket.emit('setGroupMemberInfo', memberInfo.sort((a, b) => a.permit - b.permit));
   }
 }
 
