@@ -48,6 +48,7 @@ class CommonChatController extends Controller {
       email = '${socket.id}'
       AND peer = '${peer}'
       AND type = '${type}'`;
+    const timestamp = String(Date.now());
     // 清零unread/新增unread为0
     const myUserRecent = await app.mysql.query(`SELECT * FROM userRecent WHERE ${isMyUserRecentQuery}`);
     if (unread !== undefined && msg === undefined) {
@@ -77,7 +78,8 @@ class CommonChatController extends Controller {
               msg = '[图片]';
             }
             if (lastFriendChat[0].msgType === MSG_TYPE.FILE) {
-              msg = '[文件]';
+              const { name } = JSON.parse(lastFriendChat[0].msg);
+              msg = `[文件]${name}`;
             }
             await app.mysql.query(`INSERT INTO userRecent(email,peer,unread,msg,timestamp,type) 
             VALUES('${socket.id}','${peer}','${unread}','${msg}','${lastFriendChat[0].timestamp}','${type}')
@@ -107,7 +109,8 @@ class CommonChatController extends Controller {
               msg = '[图片]';
             }
             if (lastMemberChat[0].msgType === MSG_TYPE.FILE) {
-              msg = '[文件]';
+              const { name } = JSON.parse(lastMemberChat[0].msg);
+              msg = `[文件]${name}`;
             }
             if (lastMemberChat[0].email === socket.id) {
               const name = (await app.mysql
@@ -172,12 +175,12 @@ class CommonChatController extends Controller {
         if (myUserRecent.length > 0) {
           await app.mysql.query(`UPDATE userRecent 
           SET msg = '${msg}',
-          timestamp = '${String(Date.now())}'
+          timestamp = '${timestamp}'
           WHERE ${isMyUserRecentQuery}
           `);
         } else {
           await app.mysql.query(`INSERT INTO userRecent(email,peer,unread,msg,timestamp,type) 
-          VALUES('${socket.id}','${peer}','0','${msg}','${String(Date.now())}','${type}')
+          VALUES('${socket.id}','${peer}','0','${msg}','${timestamp}','${type}')
           `);
         }
         socket.emit('updateRecentChat');
@@ -189,13 +192,13 @@ class CommonChatController extends Controller {
         if (peerUserRecent.length > 0) {
           await app.mysql.query(`UPDATE userRecent 
           SET msg = '${msg}',
-          timestamp = '${String(Date.now())}',
+          timestamp = '${timestamp}',
           unread = '${Number(peerUserRecent[0].unread) + 1}'
           WHERE ${isPeerUserRecentQuery}
           `);
         } else {
           await app.mysql.query(`INSERT INTO userRecent(email,peer,unread,msg,timestamp,type) 
-          VALUES('${peer}','${socket.id}','1','${msg}','${String(Date.now())}','${type}')
+          VALUES('${peer}','${socket.id}','1','${msg}','${timestamp}','${type}')
           `);
         }
         if (nsp.sockets[peer]) {
@@ -218,12 +221,12 @@ class CommonChatController extends Controller {
         if (myUserRecent.length > 0) {
           await app.mysql.query(`UPDATE userRecent 
           SET msg = '${name}:${msg}',
-          timestamp = '${String(Date.now())}'
+          timestamp = '${timestamp}'
           WHERE ${isMyUserRecentQuery}
           `);
         } else {
           await app.mysql.query(`INSERT INTO userRecent(email,peer,unread,msg,timestamp,type) 
-          VALUES('${socket.id}','${peer}','0','${name}:${msg}','${String(Date.now())}','${type}')
+          VALUES('${socket.id}','${peer}','0','${name}:${msg}','${timestamp}','${type}')
           `);
         }
         socket.emit('updateRecentChat');
@@ -262,13 +265,13 @@ class CommonChatController extends Controller {
             if (memberRecent.length > 0) {
               await app.mysql.query(`UPDATE userRecent 
               SET msg = '${memberName}:${msg}',
-              timestamp = '${String(Date.now())}',
+              timestamp = '${timestamp}',
               unread = '${Number(memberRecent[0].unread) + 1}'
               WHERE ${isMemberRecent}
               `);
             } else {
               await app.mysql.query(`INSERT INTO userRecent(email,peer,unread,msg,timestamp,type) 
-              VALUES('${member.email}','${peer}','1','${memberName}:${msg}','${String(Date.now())}','${type}')
+              VALUES('${member.email}','${peer}','1','${memberName}:${msg}','${timestamp}','${type}')
               `);
             }
             if (nsp.sockets[member.email]) {
@@ -284,23 +287,28 @@ class CommonChatController extends Controller {
     const { peer, type, msgType } = this.ctx.args[0];
     let { msg } = this.ctx.args[0];
     const nsp = app.io.of('/');
+    const timestamp = String(Date.now());
     // 信息是图片
     if (msgType === MSG_TYPE.PICTURE) {
       const { file, type } = msg;
       const random = createRandomNum(6);
-      fs.writeFileSync(path.join('./', `app/public/chatImg/${socket.id}_${peer}_${Date.now()}_${random}.${type}`), file);
-      msg = `http://192.168.0.104:7001/public/chatImg/${socket.id}_${peer}_${Date.now()}_${random}.${type}`;
+      fs.writeFileSync(path.join('./', `app/public/chatImg/${socket.id}_${peer}_${timestamp}_${random}.${type}`), file);
+      msg = `http://192.168.0.104:7001/public/chatImg/${socket.id}_${peer}_${timestamp}_${random}.${type}`;
     }
     // 信息是文件
     if (msgType === MSG_TYPE.FILE) {
-      const { file, type } = msg;
+      const { file, name } = msg;
       const random = createRandomNum(6);
-      fs.writeFileSync(path.join('./', `app/public/chatFile/${socket.id}_${peer}_${Date.now()}_${random}.${type}`), file);
-      msg = `http://192.168.0.104:7001/public/chatFile/${socket.id}_${peer}_${Date.now()}_${random}.${type}`;
+      fs.writeFileSync(path.join('./', `app/public/chatFile/${socket.id}_${peer}_${timestamp}_${random}_${name}`), file);
+      const src = `http://192.168.0.104:7001/public/chatFile/${socket.id}_${peer}_${timestamp}_${random}_${name}`;
+      msg = JSON.stringify({
+        src,
+        name,
+      });
     }
     await app.mysql.query(`
       INSERT INTO chat(email,peer,msg,timestamp,msgType,type)
-      VALUES('${socket.id}','${peer}','${msg}','${String(Date.now())}','${msgType}','${type}')
+      VALUES('${socket.id}','${peer}','${msg}','${timestamp}','${msgType}','${type}')
     `);
     const receivedMsg = {
       key: (await app.mysql.query(`
