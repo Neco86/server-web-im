@@ -62,7 +62,7 @@ class CommonChatController extends Controller {
           const lastFriendChat = await app.mysql.query(`
           SELECT *
           FROM chat 
-          WHERE ((msgType = '${MSG_TYPE.COMMON_CHAT}') OR (msgType = '${MSG_TYPE.PICTURE}') OR (msgType = '${MSG_TYPE.FILE}'))
+          WHERE ((msgType = '${MSG_TYPE.COMMON_CHAT}') OR (msgType = '${MSG_TYPE.PICTURE}') OR (msgType = '${MSG_TYPE.FILE}' OR (msgType = '${MSG_TYPE.FOLDER}')))
           AND type = '${type}'
           AND ((email = '${socket.id}' AND peer = '${peer}')
             OR (email = '${peer}' AND peer = '${socket.id}'))
@@ -81,6 +81,10 @@ class CommonChatController extends Controller {
               const { name } = JSON.parse(lastFriendChat[0].msg);
               msg = `[文件]${name}`;
             }
+            if (lastFriendChat[0].msgType === MSG_TYPE.FOLDER) {
+              const { folderName } = JSON.parse(lastFriendChat[0].msg);
+              msg = `[文件夹]${folderName}`;
+            }
             await app.mysql.query(`INSERT INTO userRecent(email,peer,unread,msg,timestamp,type) 
             VALUES('${socket.id}','${peer}','${unread}','${msg}','${lastFriendChat[0].timestamp}','${type}')
             `);
@@ -94,7 +98,7 @@ class CommonChatController extends Controller {
           const lastMemberChat = await app.mysql.query(`
           SELECT *
           FROM chat 
-          WHERE ((msgType = '${MSG_TYPE.COMMON_CHAT}') OR (msgType = '${MSG_TYPE.PICTURE}') OR (msgType = '${MSG_TYPE.FILE}'))
+          WHERE ((msgType = '${MSG_TYPE.COMMON_CHAT}') OR (msgType = '${MSG_TYPE.PICTURE}') OR (msgType = '${MSG_TYPE.FILE}')  OR (msgType = '${MSG_TYPE.FOLDER}'))
           AND type = '${type}'
           AND peer = '${peer}'
           ORDER BY timestamp DESC
@@ -111,6 +115,10 @@ class CommonChatController extends Controller {
             if (lastMemberChat[0].msgType === MSG_TYPE.FILE) {
               const { name } = JSON.parse(lastMemberChat[0].msg);
               msg = `[文件]${name}`;
+            }
+            if (lastMemberChat[0].msgType === MSG_TYPE.FOLDER) {
+              const { folderName } = JSON.parse(lastMemberChat[0].msg);
+              msg = `[文件夹]${folderName}`;
             }
             if (lastMemberChat[0].email === socket.id) {
               const name = (await app.mysql
@@ -306,6 +314,24 @@ class CommonChatController extends Controller {
         name,
       });
     }
+    // 信息是文件夹
+    if (msgType === MSG_TYPE.FOLDER) {
+      const { fileList, folderName } = msg;
+      const random = createRandomNum(6);
+      const paths = [];
+      for (let i = 0; i < fileList.length; i++) {
+        const { file, path: p } = fileList[i];
+        fs.mkdirSync(`app/public/chatFileFolder/${socket.id}_${peer}_${timestamp}_${random}/${p.split('/').slice(0, p.split('/').length - 1).join('/')}`, { recursive: true });
+        fs.writeFileSync(
+          path.join('./', `app/public/chatFileFolder/${socket.id}_${peer}_${timestamp}_${random}/${p}`), file);
+        paths.push(p);
+      }
+      msg = JSON.stringify({
+        baseSrc: `http://192.168.0.104:7001/public/chatFileFolder/${socket.id}_${peer}_${timestamp}_${random}`,
+        paths,
+        folderName,
+      });
+    }
     await app.mysql.query(`
       INSERT INTO chat(email,peer,msg,timestamp,msgType,type)
       VALUES('${socket.id}','${peer}','${msg}','${timestamp}','${msgType}','${type}')
@@ -346,7 +372,7 @@ class CommonChatController extends Controller {
     if (type === FRIEND_TYPE.FRIEND) {
       chats = (await app.mysql.query(`
         SELECT * FROM chat
-        WHERE ((msgType = '${MSG_TYPE.COMMON_CHAT}') OR (msgType = '${MSG_TYPE.PICTURE}') OR (msgType = '${MSG_TYPE.FILE}'))
+        WHERE ((msgType = '${MSG_TYPE.COMMON_CHAT}') OR (msgType = '${MSG_TYPE.PICTURE}') OR (msgType = '${MSG_TYPE.FILE}') OR (msgType = '${MSG_TYPE.FOLDER}'))
         AND type = '${type}'
         AND ( ( email = '${socket.id}' AND peer = '${peer}' ) 
             OR ( email = '${peer}' AND peer = '${socket.id}' ) )
@@ -366,7 +392,7 @@ class CommonChatController extends Controller {
     if (type === FRIEND_TYPE.GROUP) {
       chats = (await app.mysql.query(`
         SELECT * FROM chat
-        WHERE ((msgType = '${MSG_TYPE.COMMON_CHAT}') OR (msgType = '${MSG_TYPE.PICTURE}') OR (msgType = '${MSG_TYPE.FILE}'))
+        WHERE ((msgType = '${MSG_TYPE.COMMON_CHAT}') OR (msgType = '${MSG_TYPE.PICTURE}') OR (msgType = '${MSG_TYPE.FILE}') OR (msgType = '${MSG_TYPE.FOLDER}'))
         AND type = '${type}'
         AND peer = '${peer}'
         ORDER BY timestamp DESC

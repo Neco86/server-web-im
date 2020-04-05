@@ -39,8 +39,14 @@ const MSG_TYPE = {
   NOTICE: '5',
   // 图片
   PICTURE: '6',
-  // 文件
+  // 离线文件
   FILE: '7',
+  // 离线文件夹
+  FOLDER: '8',
+  // 在线文件
+  ONLINE_FILE: '9',
+  // 在线文件夹
+  ONLINE_FOLDER: '10',
 };
 
 // permit 群聊权限
