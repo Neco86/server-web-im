@@ -37,6 +37,10 @@ const MSG_TYPE = {
   DISAGREE_FRIEND: '4',
   // 通知消息
   NOTICE: '5',
+  // 图片
+  PICTURE: '6',
+  // 文件
+  FILE: '7',
 };
 
 // permit 群聊权限

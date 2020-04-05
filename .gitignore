@@ -13,3 +13,5 @@ run/
 typings/
 .nyc_output/
 app/public/avatar/*
+app/public/chatFile/*
+app/public/chatImg/*
