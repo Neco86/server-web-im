@@ -1,12 +1,14 @@
+/* eslint-disable array-bracket-spacing */
 'use strict';
 
 const fs = require('fs');
 const path = require('path');
 const Controller = require('egg').Controller;
 const { createRandomNum } = require('../../utils/utils');
-const { FRIEND_TYPE, MSG_TYPE } = require('../../utils/const');
+const { FRIEND_TYPE, MSG_TYPE, QUERY_MSG_TYPE, PREFIX_MSG_TYPE } = require('../../utils/const');
 
 class CommonChatController extends Controller {
+  // 把userRecent的数据添加头像和名称(备注/昵称),展示在聊天左侧边栏内容
   async getRecentChat() {
     const { socket, app } = this.ctx;
     const recentChats = [];
@@ -40,87 +42,79 @@ class CommonChatController extends Controller {
     }
     socket.emit('setRecentChat', recentChats);
   }
+  // 设置聊天左侧边栏内容
   async setRecentChat() {
     const { socket, app } = this.ctx;
-    const { peer, type, unread, msg } = this.ctx.args[0];
+    const { peer, type, unread, msg, msgType } = this.ctx.args[0];
     const nsp = app.io.of('/');
-    const isMyUserRecentQuery = `
-      email = '${socket.id}'
-      AND peer = '${peer}'
-      AND type = '${type}'`;
+    const isMyUserRecentQuery = `email = '${socket.id}' AND peer = '${peer}' AND type = '${type}'`;
     const timestamp = String(Date.now());
-    // 清零unread/新增unread为0
     const myUserRecent = await app.mysql.query(`SELECT * FROM userRecent WHERE ${isMyUserRecentQuery}`);
+    // 更改我的未读数
+    // unread 一般为 0
+    // 1.点击左侧边栏用户时,清零未读
+    // 2.从通讯录跳转到聊天内容
     if (unread !== undefined && msg === undefined) {
-      if (myUserRecent.length > 0) {
+      if (myUserRecent.length > 0) { // 1
         await app.mysql.query(`UPDATE userRecent 
         SET unread = '${unread}'
         WHERE ${isMyUserRecentQuery}
         `);
-      } else {
+      } else { // 2
+        // 好友聊天
         if (type === FRIEND_TYPE.FRIEND) {
           const lastFriendChat = await app.mysql.query(`
           SELECT *
           FROM chat 
-          WHERE ((msgType = '${MSG_TYPE.COMMON_CHAT}') OR (msgType = '${MSG_TYPE.PICTURE}') OR (msgType = '${MSG_TYPE.FILE}' OR (msgType = '${MSG_TYPE.FOLDER}')))
+          WHERE ${QUERY_MSG_TYPE}
           AND type = '${type}'
           AND ((email = '${socket.id}' AND peer = '${peer}')
             OR (email = '${peer}' AND peer = '${socket.id}'))
           ORDER BY timestamp DESC
           LIMIT 1
           `);
-          if (lastFriendChat.length > 0) {
-            let msg = '';
-            if (lastFriendChat[0].msgType === MSG_TYPE.COMMON_CHAT) {
-              msg = lastFriendChat[0].msg;
+          if (lastFriendChat.length > 0) { // 有聊天记录
+            let { msg, msgType } = lastFriendChat[0];
+            const pre = PREFIX_MSG_TYPE[lastFriendChat[0].msgType];
+            switch (msgType) {
+              case MSG_TYPE.PICTURE: msg = ''; break;
+              case MSG_TYPE.FILE: msg = JSON.parse(lastFriendChat[0].msg).name; break;
+              case MSG_TYPE.FOLDER: msg = JSON.parse(lastFriendChat[0].msg).folderName; break;
+              default: break;
             }
-            if (lastFriendChat[0].msgType === MSG_TYPE.PICTURE) {
-              msg = '[图片]';
-            }
-            if (lastFriendChat[0].msgType === MSG_TYPE.FILE) {
-              const { name } = JSON.parse(lastFriendChat[0].msg);
-              msg = `[文件]${name}`;
-            }
-            if (lastFriendChat[0].msgType === MSG_TYPE.FOLDER) {
-              const { folderName } = JSON.parse(lastFriendChat[0].msg);
-              msg = `[文件夹]${folderName}`;
-            }
+            msg = `${pre}${msg}`;
             await app.mysql.query(`INSERT INTO userRecent(email,peer,unread,msg,timestamp,type) 
             VALUES('${socket.id}','${peer}','${unread}','${msg}','${lastFriendChat[0].timestamp}','${type}')
             `);
-          } else {
+          } else { // 没有聊天记录
             await app.mysql.query(`INSERT INTO userRecent(email,peer,unread,msg,timestamp,type) 
             VALUES('${socket.id}','${peer}','${unread}','','','${type}')
             `);
           }
         }
+        // 群聊
         if (type === FRIEND_TYPE.GROUP) {
           const lastMemberChat = await app.mysql.query(`
           SELECT *
           FROM chat 
-          WHERE ((msgType = '${MSG_TYPE.COMMON_CHAT}') OR (msgType = '${MSG_TYPE.PICTURE}') OR (msgType = '${MSG_TYPE.FILE}')  OR (msgType = '${MSG_TYPE.FOLDER}'))
+          WHERE ${QUERY_MSG_TYPE}
           AND type = '${type}'
           AND peer = '${peer}'
           ORDER BY timestamp DESC
           LIMIT 1
           `);
-          if (lastMemberChat.length > 0) {
-            let msg = '';
-            if (lastMemberChat[0].msgType === MSG_TYPE.COMMON_CHAT) {
-              msg = lastMemberChat[0].msg;
+          if (lastMemberChat.length > 0) { // 有聊天记录
+            let { msg, msgType } = lastMemberChat[0];
+            const pre = PREFIX_MSG_TYPE[lastMemberChat[0].msgType];
+            switch (msgType) {
+              case MSG_TYPE.PICTURE: msg = ''; break;
+              case MSG_TYPE.FILE: msg = JSON.parse(lastMemberChat[0].msg).name; break;
+              case MSG_TYPE.FOLDER: msg = JSON.parse(lastMemberChat[0].msg).folderName; break;
+              default: break;
             }
-            if (lastMemberChat[0].msgType === MSG_TYPE.PICTURE) {
-              msg = '[图片]';
-            }
-            if (lastMemberChat[0].msgType === MSG_TYPE.FILE) {
-              const { name } = JSON.parse(lastMemberChat[0].msg);
-              msg = `[文件]${name}`;
-            }
-            if (lastMemberChat[0].msgType === MSG_TYPE.FOLDER) {
-              const { folderName } = JSON.parse(lastMemberChat[0].msg);
-              msg = `[文件夹]${folderName}`;
-            }
+            msg = `${pre}${msg}`;
             if (lastMemberChat[0].email === socket.id) {
+              // 最后自己发言,name:群名片/昵称
               const name = (await app.mysql
                 .query(`SELECT * FROM groupMemberInfo
                       WHERE chatKey = '${peer}' 
@@ -136,7 +130,7 @@ class CommonChatController extends Controller {
                 VALUES('${socket.id}','${peer}','${unread}','${name}:${msg}','${lastMemberChat[0].timestamp}','${type}')
               `);
             } else {
-              // 群名片/好友备注/昵称
+              // 最后其他人发言,name:群名片/好友备注/昵称
               const memberName = (await app.mysql
                 .query(`SELECT * FROM groupMemberInfo
                       WHERE chatKey = '${peer}' 
@@ -160,7 +154,7 @@ class CommonChatController extends Controller {
                 VALUES('${socket.id}','${peer}','${unread}','${memberName}:${msg}','${lastMemberChat[0].timestamp}','${type}')
               `);
             }
-          } else {
+          } else { // 没有聊天记录
             await app.mysql.query(`INSERT INTO userRecent(email,peer,unread,msg,timestamp,type) 
                 VALUES('${socket.id}','${peer}','${unread}','','','${type}')
               `);
@@ -169,7 +163,7 @@ class CommonChatController extends Controller {
       }
       socket.emit('updateRecentChat');
     }
-    // 删除
+    // 删除我的左侧边好友
     if (unread === undefined && msg === undefined) {
       await app.mysql.query(`
       DELETE FROM userRecent
@@ -177,9 +171,11 @@ class CommonChatController extends Controller {
       `);
       socket.emit('updateRecentChat');
     }
-    // 新增/更新msg
+    // 新增/更新msg,更新我和对方的
     if (unread === undefined && msg !== undefined) {
+      // 好友消息
       if (type === FRIEND_TYPE.FRIEND) {
+        // 更新我的侧边栏
         if (myUserRecent.length > 0) {
           await app.mysql.query(`UPDATE userRecent 
           SET msg = '${msg}',
@@ -192,16 +188,29 @@ class CommonChatController extends Controller {
           `);
         }
         socket.emit('updateRecentChat');
+        // 更新好友的侧边栏
         const isPeerUserRecentQuery = `
           email = '${peer}'
           AND peer = '${socket.id}'
           AND type = '${type}'`;
         const peerUserRecent = await app.mysql.query(`SELECT * FROM userRecent WHERE ${isPeerUserRecentQuery}`);
         if (peerUserRecent.length > 0) {
+          let unread = Number(peerUserRecent[0].unread || 0);
+          if ([
+            MSG_TYPE.COMMON_CHAT,
+            MSG_TYPE.PICTURE,
+            MSG_TYPE.ONLINE_FILE,
+            MSG_TYPE.ONLINE_FOLDER,
+          ].includes(msgType)) {
+            unread += 1;
+          }
+          if ((msgType === MSG_TYPE.FILE || msgType === MSG_TYPE.FOLDER) && type === FRIEND_TYPE.GROUP) {
+            unread += 1;
+          }
           await app.mysql.query(`UPDATE userRecent 
           SET msg = '${msg}',
           timestamp = '${timestamp}',
-          unread = '${Number(peerUserRecent[0].unread) + 1}'
+          unread = '${unread}'
           WHERE ${isPeerUserRecentQuery}
           `);
         } else {
@@ -213,7 +222,9 @@ class CommonChatController extends Controller {
           nsp.sockets[peer].emit('updateRecentChat');
         }
       }
+      // 群聊消息
       if (type === FRIEND_TYPE.GROUP) {
+        // 更新我的侧边栏
         // 群名/昵称
         const name = (await app.mysql
           .query(`SELECT * FROM groupMemberInfo
@@ -238,6 +249,7 @@ class CommonChatController extends Controller {
           `);
         }
         socket.emit('updateRecentChat');
+        // 更新群友的侧边栏
         const members = await app.mysql.query(`SELECT * FROM groupMemberInfo WHERE chatKey = '${peer}'`);
         for (let i = 0; i < members.length; i++) {
           const member = members[i];
@@ -290,34 +302,48 @@ class CommonChatController extends Controller {
       }
     }
   }
+  // 发送各类消息
   async sendMsg() {
     const { socket, app } = this.ctx;
     const { peer, type, msgType } = this.ctx.args[0];
     let { msg } = this.ctx.args[0];
     const nsp = app.io.of('/');
     const timestamp = String(Date.now());
-    // 信息是图片
+    const random = createRandomNum(6);
+    let p2pFile = msgType === MSG_TYPE.FILE || msgType === MSG_TYPE.FOLDER;
+    // 图片存储
     if (msgType === MSG_TYPE.PICTURE) {
       const { file, type } = msg;
-      const random = createRandomNum(6);
       fs.writeFileSync(path.join('./', `app/public/chatImg/${socket.id}_${peer}_${timestamp}_${random}.${type}`), file);
       msg = `http://192.168.0.104:7001/public/chatImg/${socket.id}_${peer}_${timestamp}_${random}.${type}`;
     }
-    // 信息是文件
-    if (msgType === MSG_TYPE.FILE) {
-      const { file, name } = msg;
-      const random = createRandomNum(6);
+    // 离线文件存储
+    if (msgType === MSG_TYPE.FILE && msg.save) {
+      const { file, name, key, save } = msg;
+      p2pFile = p2pFile && !save;
       fs.writeFileSync(path.join('./', `app/public/chatFile/${socket.id}_${peer}_${timestamp}_${random}_${name}`), file);
       const src = `http://192.168.0.104:7001/public/chatFile/${socket.id}_${peer}_${timestamp}_${random}_${name}`;
       msg = JSON.stringify({
         src,
         name,
       });
+      // 有key的是在线转离线/同意在线 无key的是群聊文件
+      if (key) {
+        await app.mysql.query(`
+            UPDATE chat SET msg = '${msg}' , timestamp = '${timestamp}', msgType = '${msgType}'
+            WHERE \`key\` = '${key}'
+            `);
+      } else {
+        await app.mysql.query(`
+        INSERT INTO chat(email,peer,msg,timestamp,msgType,type)
+        VALUES('${socket.id}','${peer}','${msg}','${timestamp}','${msgType}','${type}')
+        `);
+      }
     }
-    // 信息是文件夹
-    if (msgType === MSG_TYPE.FOLDER) {
-      const { fileList, folderName } = msg;
-      const random = createRandomNum(6);
+    // 离线文件夹存储
+    if (msgType === MSG_TYPE.FOLDER && msg.save) {
+      const { fileList, folderName, key, save } = msg;
+      p2pFile = p2pFile && !save;
       const paths = [];
       for (let i = 0; i < fileList.length; i++) {
         const { file, path: p } = fileList[i];
@@ -331,39 +357,103 @@ class CommonChatController extends Controller {
         paths,
         folderName,
       });
+      // 有key的是在线转离线/同意在线 无key的是群聊文件
+      if (key) {
+        await app.mysql.query(`
+            UPDATE chat SET msg = '${msg}' , timestamp = '${timestamp}', msgType = '${msgType}'
+            WHERE \`key\` = '${key}'
+            `);
+      } else {
+        await app.mysql.query(`
+        INSERT INTO chat(email,peer,msg,timestamp,msgType,type)
+        VALUES('${socket.id}','${peer}','${msg}','${timestamp}','${msgType}','${type}')
+        `);
+      }
     }
-    await app.mysql.query(`
+    // 取消发送在线文件/文件夹
+    if ([MSG_TYPE.CANCEL_ONLINE_FILE, MSG_TYPE.CANCEL_ONLINE_FOLDER].includes(msgType)) {
+      const { key, msg: name } = msg;
+      await app.mysql.query(`
+      UPDATE chat SET msgType = '${msgType}'
+      WHERE \`key\` = '${key}'
+      `);
+      msg = name;
+    }
+    // 同意在线文件/文件夹
+    if ([MSG_TYPE.AGREE_ONLINE_FILE, MSG_TYPE.AGREE_ONLINE_FOLDER].includes(msgType)) {
+      const { key, msg: name } = msg;
+      const info = (await app.mysql.query(`
+      SELECT * FROM chat
+      WHERE \`key\` = '${key}'
+      `))[0];
+      await app.mysql.query(`
+      UPDATE chat SET msgType = '${msgType}', email = '${info.peer}' , peer = '${info.email}'
+      WHERE \`key\` = '${key}'
+      `);
+      msg = name;
+    }
+    // 拒绝在线文件/文件夹
+    if ([MSG_TYPE.DISAGREE_ONLINE_FILE, MSG_TYPE.DISAGREE_ONLINE_FOLDER].includes(msgType)) {
+      const { key, msg: name } = msg;
+      const info = (await app.mysql.query(`
+      SELECT * FROM chat
+      WHERE \`key\` = '${key}'
+      `))[0];
+      await app.mysql.query(`
+      UPDATE chat SET msgType = '${msgType}', email = '${info.peer}' , peer = '${info.email}'
+      WHERE \`key\` = '${key}'
+      `);
+      msg = name;
+    }
+    // 文字聊天/图片/请求发送文件/请求发送文件夹 插入数据库chat表
+    if ([
+      MSG_TYPE.COMMON_CHAT,
+      MSG_TYPE.PICTURE,
+      MSG_TYPE.ONLINE_FILE,
+      MSG_TYPE.ONLINE_FOLDER,
+    ].includes(msgType)) {
+      await app.mysql.query(`
       INSERT INTO chat(email,peer,msg,timestamp,msgType,type)
       VALUES('${socket.id}','${peer}','${msg}','${timestamp}','${msgType}','${type}')
     `);
-    const receivedMsg = {
-      key: (await app.mysql.query(`
-      SELECT * FROM chat WHERE email = '${socket.id}' AND peer ='${peer}' AND msgType = '${msgType}' AND  type = '${type}'
-      ORDER BY timestamp DESC
-      LIMIT 1
-      `))[0].key,
-      msg,
-      msgType,
-      peer: socket.id,
-    };
-    receivedMsg.self = true;
-    socket.emit('receivedMsg', receivedMsg);
-    receivedMsg.self = false;
-    if (type === FRIEND_TYPE.FRIEND && nsp.sockets[peer]) {
-      nsp.sockets[peer].emit('receivedMsg', receivedMsg);
     }
-    if (type === FRIEND_TYPE.GROUP) {
-      const members = await app.mysql.query(`
-      SELECT * FROM groupMemberInfo WHERE chatKey = '${peer}'
-    `);
-      for (let i = 0; i < members.length; i++) {
-        const member = members[i];
-        if (member.email !== socket.id && nsp.sockets[member.email]) {
-          nsp.sockets[member.email].emit('receivedMsg', receivedMsg);
+    // p2p 文件/文件夹传输
+    if (p2pFile) {
+      if (type === FRIEND_TYPE.FRIEND && nsp.sockets[peer]) {
+        nsp.sockets[peer].emit('receivedFile', this.ctx.args[0]);
+      }
+    } else {
+      const receivedMsg = {
+        key: (await app.mysql.query(`
+        SELECT * FROM chat WHERE email = '${socket.id}' AND peer ='${peer}' AND msgType = '${msgType}' AND  type = '${type}'
+        ORDER BY timestamp DESC
+        LIMIT 1
+        `))[0].key,
+        msg,
+        msgType,
+        peer: socket.id,
+        type,
+      };
+      receivedMsg.self = true;
+      socket.emit('receivedMsg', receivedMsg);
+      receivedMsg.self = false;
+      if (type === FRIEND_TYPE.FRIEND && nsp.sockets[peer]) {
+        nsp.sockets[peer].emit('receivedMsg', receivedMsg);
+      }
+      if (type === FRIEND_TYPE.GROUP) {
+        const members = await app.mysql.query(`
+        SELECT * FROM groupMemberInfo WHERE chatKey = '${peer}'
+      `);
+        for (let i = 0; i < members.length; i++) {
+          const member = members[i];
+          if (member.email !== socket.id && nsp.sockets[member.email]) {
+            nsp.sockets[member.email].emit('receivedMsg', receivedMsg);
+          }
         }
       }
     }
   }
+  // 获得聊天内容
   async getChats() {
     const { socket, app } = this.ctx;
     const { peer, type, page } = this.ctx.args[0];
@@ -372,7 +462,7 @@ class CommonChatController extends Controller {
     if (type === FRIEND_TYPE.FRIEND) {
       chats = (await app.mysql.query(`
         SELECT * FROM chat
-        WHERE ((msgType = '${MSG_TYPE.COMMON_CHAT}') OR (msgType = '${MSG_TYPE.PICTURE}') OR (msgType = '${MSG_TYPE.FILE}') OR (msgType = '${MSG_TYPE.FOLDER}'))
+        WHERE ${QUERY_MSG_TYPE}
         AND type = '${type}'
         AND ( ( email = '${socket.id}' AND peer = '${peer}' ) 
             OR ( email = '${peer}' AND peer = '${socket.id}' ) )
@@ -392,7 +482,7 @@ class CommonChatController extends Controller {
     if (type === FRIEND_TYPE.GROUP) {
       chats = (await app.mysql.query(`
         SELECT * FROM chat
-        WHERE ((msgType = '${MSG_TYPE.COMMON_CHAT}') OR (msgType = '${MSG_TYPE.PICTURE}') OR (msgType = '${MSG_TYPE.FILE}') OR (msgType = '${MSG_TYPE.FOLDER}'))
+        WHERE ${QUERY_MSG_TYPE}
         AND type = '${type}'
         AND peer = '${peer}'
         ORDER BY timestamp DESC
@@ -418,6 +508,7 @@ class CommonChatController extends Controller {
     }
     socket.emit('setChats', { chats, page, hasMore });
   }
+  // 获取群聊成员信息,设置群聊右侧群友信息
   async getGroupMemberInfo() {
     const { socket, app } = this.ctx;
     const { chatKey } = this.ctx.args[0];

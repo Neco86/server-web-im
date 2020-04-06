@@ -45,8 +45,35 @@ const MSG_TYPE = {
   FOLDER: '8',
   // 在线文件
   ONLINE_FILE: '9',
-  // 在线文件夹
-  ONLINE_FOLDER: '10',
+  // 同意在线文件
+  AGREE_ONLINE_FILE: '10',
+  // 拒绝在线文件
+  DISAGREE_ONLINE_FILE: '11',
+  // 取消发送在线文件
+  CANCEL_ONLINE_FILE: '12',
+  // 请求发送在线文件夹
+  ONLINE_FOLDER: '13',
+  // 同意在线文件夹
+  AGREE_ONLINE_FOLDER: '14',
+  // 拒绝在线文件夹
+  DISAGREE_ONLINE_FOLDER: '15',
+  // 取消发送在线文件夹
+  CANCEL_ONLINE_FOLDER: '16',
+};
+
+const PREFIX_MSG_TYPE = {
+  [MSG_TYPE.COMMON_CHAT]: '',
+  [MSG_TYPE.PICTURE]: '[图片]',
+  [MSG_TYPE.FILE]: '[文件]',
+  [MSG_TYPE.FOLDER]: '[文件夹]',
+  [MSG_TYPE.ONLINE_FILE]: '[发送在线文件]',
+  [MSG_TYPE.CANCEL_ONLINE_FILE]: '[取消发送在线文件]',
+  [MSG_TYPE.AGREE_ONLINE_FILE]: '[同意接收在线文件]',
+  [MSG_TYPE.DISAGREE_ONLINE_FILE]: '[拒绝接收在线文件]',
+  [MSG_TYPE.ONLINE_FOLDER]: '[发送在线文件夹]',
+  [MSG_TYPE.CANCEL_ONLINE_FOLDER]: '[取消发送在线文件夹]',
+  [MSG_TYPE.AGREE_ONLINE_FOLDER]: '[同意接收在线文件夹]',
+  [MSG_TYPE.DISAGREE_ONLINE_FOLDER]: '[拒绝接收在线文件夹]',
 };
 
 // permit 群聊权限
@@ -68,8 +95,23 @@ const EDIT_FRIEND = {
   EXIT_GROUP: 'exitGroup',
 };
 
+const QUERY_MSG_TYPE = `(
+  (msgType = '${MSG_TYPE.COMMON_CHAT}') OR
+  (msgType = '${MSG_TYPE.PICTURE}') OR
+  (msgType = '${MSG_TYPE.FILE}') OR
+  (msgType = '${MSG_TYPE.FOLDER}') OR
+  (msgType = '${MSG_TYPE.ONLINE_FILE}') OR
+  (msgType = '${MSG_TYPE.AGREE_ONLINE_FILE}') OR
+  (msgType = '${MSG_TYPE.DISAGREE_ONLINE_FILE}') OR
+  (msgType = '${MSG_TYPE.CANCEL_ONLINE_FILE}') OR
+  (msgType = '${MSG_TYPE.ONLINE_FOLDER}') OR
+  (msgType = '${MSG_TYPE.AGREE_ONLINE_FOLDER}') OR
+  (msgType = '${MSG_TYPE.DISAGREE_ONLINE_FOLDER}') OR
+  (msgType = '${MSG_TYPE.CANCEL_ONLINE_FOLDER}')
+  )`;
+
 module.exports = {
   SUCCESS_CODE, ERROR_CODE, DEFAULT_ROOM, USER_STATUS, GROUP_TYPE,
   SEARCH_TYPE, FRIEND_TYPE, MSG_TYPE, GROUP_PERMIT, EDIT_GROUP,
-  EDIT_FRIEND,
+  EDIT_FRIEND, QUERY_MSG_TYPE, PREFIX_MSG_TYPE,
 };
