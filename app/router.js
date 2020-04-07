@@ -42,10 +42,13 @@ module.exports = app => {
   // 修改好友/群聊数据
   io.of('/').route('changeFriendInfo', io.controller.changeInfo.changeFriendInfo);
   io.of('/').route('changeGroupInfo', io.controller.changeInfo.changeGroupInfo);
-  // 普通聊天
+  // 普通聊天/图片/文件
   io.of('/').route('getRecentChat', io.controller.commonChat.getRecentChat);
   io.of('/').route('setRecentChat', io.controller.commonChat.setRecentChat);
   io.of('/').route('sendMsg', io.controller.commonChat.sendMsg);
   io.of('/').route('getChats', io.controller.commonChat.getChats);
   io.of('/').route('getGroupMemberInfo', io.controller.commonChat.getGroupMemberInfo);
+  // 修改群友权限
+  io.of('/').route('setPermit', io.controller.permit.setPermit);
+
 };

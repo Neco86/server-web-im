@@ -534,7 +534,7 @@ class CommonChatController extends Controller {
         name: memberName || remarkName || nickname,
       });
     }
-    socket.emit('setGroupMemberInfo', memberInfo.sort((a, b) => a.permit - b.permit));
+    socket.emit('setGroupMemberInfo', { info: memberInfo.sort((a, b) => a.permit - b.permit), chatKey });
   }
 }
 

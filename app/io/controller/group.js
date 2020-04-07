@@ -132,10 +132,10 @@ class GroupController extends Controller {
       // 删除好友
       case EDIT_FRIEND.DELETE_FRIEND:
         await app.mysql.query(`
-        DELETE FROM userChatInfo where email = '${socket.id}' AND peer = '${value}' AND type = '${FRIEND_TYPE.FRIEND}'
+        DELETE FROM userChatInfo where ((email = '${socket.id}' AND peer = '${value}')OR(email = '${value}' AND peer = '${socket.id}')) AND type = '${FRIEND_TYPE.FRIEND}'
         `);
         await app.mysql.query(`
-        DELETE FROM userChatInfo where email = '${value}' AND peer = '${socket.id}' AND type = '${FRIEND_TYPE.FRIEND}'
+        DELETE FROM userRecent where ((email = '${socket.id}' AND peer = '${value}')OR(email = '${value}' AND peer = '${socket.id}')) AND type = '${FRIEND_TYPE.FRIEND}'
         `);
         if (nsp.sockets[value]) {
           nsp.sockets[value].emit('deleteFriend');
@@ -149,6 +149,8 @@ class GroupController extends Controller {
         await app.mysql.query(`
         DELETE FROM groupMemberInfo where email = '${socket.id}' AND chatKey = '${value}'
         `);
+        await app.mysql.query(`
+        DELETE FROM userRecent WHERE email = '${socket.id}' AND peer = '${value}'`);
         for (let i = 0; i < users.length; i++) {
           const user = users[i];
           // 给群主和群管理发消息
@@ -183,6 +185,9 @@ class GroupController extends Controller {
         `);
         await app.mysql.query(`
         DELETE FROM groupMemberInfo where chatKey = '${value}'
+        `);
+        await app.mysql.query(`
+        DELETE FROM userRecent where peer = '${value}'
         `);
         for (let i = 0; i < allUser.length; i++) {
           const user = allUser[i];
