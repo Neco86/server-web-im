@@ -75,13 +75,13 @@ class ChatController extends Controller {
             .query(`SELECT * FROM userChatInfo WHERE email = '${user}' AND peer = '${self[0].email}'`);
           nsp.sockets[user].emit('applyFriend', {
             email: self[0].email,
-            nickname: friendRemarkName[0].remarkName || self[0].nickname,
+            nickname: (friendRemarkName[0] || {}).remarkName || self[0].nickname,
             avatar: self[0].avatar,
             reason,
             type: friendType,
             chatKey: groupInfo[0].chatKey,
             groupAvatar: groupInfo[0].avatar,
-            groupName: groupRemarkName[0].remarkName || groupInfo[0].nickname,
+            groupName: (groupRemarkName[0] || {}).remarkName || groupInfo[0].nickname,
           });
         }
         // 申请过
