@@ -19,8 +19,8 @@ class LoginController extends Controller {
       if (exist[0].password === password) {
         const token = app.jwt.sign({
           email,
-          // 一小时过期
-          exp: Math.floor(Date.now() / 1000) + 60 * 60,
+          // 24小时过期
+          exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24,
           // 5s过期
           // exp: Math.floor(Date.now() / 1000) + 5,
         }, app.config.jwt.secret);

@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const Controller = require('egg').Controller;
 const { createRandomNum } = require('../../utils/utils');
-const { ERROR_CODE, SUCCESS_CODE, GROUP_PERMIT } = require('../../utils/const')
+const { ERROR_CODE, SUCCESS_CODE, GROUP_PERMIT, CLIENT_HOST } = require('../../utils/const')
 
 class FileController extends Controller {
   async setAvatar() {
@@ -20,7 +20,7 @@ class FileController extends Controller {
     });
     // 写入新文件
     fs.writeFileSync(path.join('./', `app/public/avatar/${socket.id}_${random}.${type}`), file);
-    const url = `http://192.168.0.104:7001/public/avatar/${socket.id}_${random}.${type}`;
+    const url = `${CLIENT_HOST}/public/avatar/${socket.id}_${random}.${type}`;
     await app.mysql
       .query('UPDATE userInfo SET avatar = ? WHERE email = ?', [url, socket.id]);
     socket.emit('setUserInfo', { avatar: url });
@@ -42,7 +42,7 @@ class FileController extends Controller {
       });
       // 写入新文件
       fs.writeFileSync(path.join('./', `app/public/avatar/${chatKey}_${random}.${type}`), file);
-      const url = `http://192.168.0.104:7001/public/avatar/${chatKey}_${random}.${type}`;
+      const url = `${CLIENT_HOST}/public/avatar/${chatKey}_${random}.${type}`;
       await app.mysql
         .query('UPDATE groupCommonInfo SET avatar = ? WHERE chatKey = ?', [url, chatKey]);
       socket.emit('setGroupAvatar', { code: SUCCESS_CODE, avatar: url, chatKey });

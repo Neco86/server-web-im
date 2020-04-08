@@ -50,5 +50,8 @@ module.exports = app => {
   io.of('/').route('getGroupMemberInfo', io.controller.commonChat.getGroupMemberInfo);
   // 修改群友权限
   io.of('/').route('setPermit', io.controller.permit.setPermit);
-
+  // 音视频聊天
+  io.of('/').route('videoOffer', io.controller.mediaChat.videoOffer);
+  io.of('/').route('videoAnswer', io.controller.mediaChat.videoAnswer);
+  io.of('/').route('newIceCandidate', io.controller.mediaChat.newIceCandidate);
 };

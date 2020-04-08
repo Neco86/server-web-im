@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const Controller = require('egg').Controller;
 const { createRandomNum } = require('../../utils/utils');
-const { FRIEND_TYPE, MSG_TYPE, QUERY_MSG_TYPE, PREFIX_MSG_TYPE } = require('../../utils/const');
+const { FRIEND_TYPE, MSG_TYPE, QUERY_MSG_TYPE, PREFIX_MSG_TYPE, CLIENT_HOST } = require('../../utils/const');
 
 class CommonChatController extends Controller {
   // 把userRecent的数据添加头像和名称(备注/昵称),展示在聊天左侧边栏内容
@@ -315,14 +315,14 @@ class CommonChatController extends Controller {
     if (msgType === MSG_TYPE.PICTURE) {
       const { file, type } = msg;
       fs.writeFileSync(path.join('./', `app/public/chatImg/${socket.id}_${peer}_${timestamp}_${random}.${type}`), file);
-      msg = `http://192.168.0.104:7001/public/chatImg/${socket.id}_${peer}_${timestamp}_${random}.${type}`;
+      msg = `${CLIENT_HOST}/public/chatImg/${socket.id}_${peer}_${timestamp}_${random}.${type}`;
     }
     // 离线文件存储
     if (msgType === MSG_TYPE.FILE && msg.save) {
       const { file, name, key, save } = msg;
       p2pFile = p2pFile && !save;
       fs.writeFileSync(path.join('./', `app/public/chatFile/${socket.id}_${peer}_${timestamp}_${random}_${name}`), file);
-      const src = `http://192.168.0.104:7001/public/chatFile/${socket.id}_${peer}_${timestamp}_${random}_${name}`;
+      const src = `${CLIENT_HOST}/public/chatFile/${socket.id}_${peer}_${timestamp}_${random}_${name}`;
       msg = JSON.stringify({
         src,
         name,
@@ -353,7 +353,7 @@ class CommonChatController extends Controller {
         paths.push(p);
       }
       msg = JSON.stringify({
-        baseSrc: `http://192.168.0.104:7001/public/chatFileFolder/${socket.id}_${peer}_${timestamp}_${random}`,
+        baseSrc: `${CLIENT_HOST}/public/chatFileFolder/${socket.id}_${peer}_${timestamp}_${random}`,
         paths,
         folderName,
       });
