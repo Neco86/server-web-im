@@ -59,6 +59,18 @@ const MSG_TYPE = {
   DISAGREE_ONLINE_FOLDER: '15',
   // 取消发送在线文件夹
   CANCEL_ONLINE_FOLDER: '16',
+  // 发起视频聊天
+  START_VIDEO_CHAT: '17',
+  // 发起语音聊天
+  START_AUDIO_CHAT: '18',
+  // 加入视频聊天
+  JOIN_VIDEO_CHAT: '19',
+  // 加入语音聊天
+  JOIN_AUDIO_CHAT: '20',
+  // 拒绝视频聊天
+  REJECT_VIDEO_CHAT: '21',
+  // 拒绝语音聊天
+  REJECT_AUDIO_CHAT: '22',
 };
 
 const PREFIX_MSG_TYPE = {
@@ -74,6 +86,12 @@ const PREFIX_MSG_TYPE = {
   [MSG_TYPE.CANCEL_ONLINE_FOLDER]: '[取消发送在线文件夹]',
   [MSG_TYPE.AGREE_ONLINE_FOLDER]: '[同意接收在线文件夹]',
   [MSG_TYPE.DISAGREE_ONLINE_FOLDER]: '[拒绝接收在线文件夹]',
+  [MSG_TYPE.START_VIDEO_CHAT]: '[视频聊天]',
+  [MSG_TYPE.START_AUDIO_CHAT]: '[语音聊天]',
+  [MSG_TYPE.JOIN_VIDEO_CHAT]: '[加入视频聊天]',
+  [MSG_TYPE.JOIN_AUDIO_CHAT]: '[加入语音聊天]',
+  [MSG_TYPE.REJECT_VIDEO_CHAT]: '[拒绝视频聊天]',
+  [MSG_TYPE.REJECT_AUDIO_CHAT]: '[拒绝语音聊天]',
 };
 
 // permit 群聊权限
@@ -107,7 +125,13 @@ const QUERY_MSG_TYPE = `(
   (msgType = '${MSG_TYPE.ONLINE_FOLDER}') OR
   (msgType = '${MSG_TYPE.AGREE_ONLINE_FOLDER}') OR
   (msgType = '${MSG_TYPE.DISAGREE_ONLINE_FOLDER}') OR
-  (msgType = '${MSG_TYPE.CANCEL_ONLINE_FOLDER}')
+  (msgType = '${MSG_TYPE.CANCEL_ONLINE_FOLDER}') OR
+  (msgType = '${MSG_TYPE.START_AUDIO_CHAT}') OR
+  (msgType = '${MSG_TYPE.START_VIDEO_CHAT}') OR
+  (msgType = '${MSG_TYPE.JOIN_AUDIO_CHAT}') OR
+  (msgType = '${MSG_TYPE.JOIN_VIDEO_CHAT}') OR
+  (msgType = '${MSG_TYPE.REJECT_AUDIO_CHAT}') OR
+  (msgType = '${MSG_TYPE.REJECT_VIDEO_CHAT}')
   )`;
 
 const SERVER_HOST = 'https://192.168.0.104:8443';

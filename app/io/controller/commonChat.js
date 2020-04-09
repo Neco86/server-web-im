@@ -78,6 +78,8 @@ class CommonChatController extends Controller {
             const pre = PREFIX_MSG_TYPE[lastFriendChat[0].msgType];
             switch (msgType) {
               case MSG_TYPE.PICTURE: msg = ''; break;
+              case MSG_TYPE.START_VIDEO_CHAT: msg = ''; break;
+              case MSG_TYPE.START_AUDIO_CHAT: msg = ''; break;
               case MSG_TYPE.FILE: msg = JSON.parse(lastFriendChat[0].msg).name; break;
               case MSG_TYPE.FOLDER: msg = JSON.parse(lastFriendChat[0].msg).folderName; break;
               default: break;
@@ -108,6 +110,8 @@ class CommonChatController extends Controller {
             const pre = PREFIX_MSG_TYPE[lastMemberChat[0].msgType];
             switch (msgType) {
               case MSG_TYPE.PICTURE: msg = ''; break;
+              case MSG_TYPE.START_AUDIO_CHAT: msg = ''; break;
+              case MSG_TYPE.START_VIDEO_CHAT: msg = ''; break;
               case MSG_TYPE.FILE: msg = JSON.parse(lastMemberChat[0].msg).name; break;
               case MSG_TYPE.FOLDER: msg = JSON.parse(lastMemberChat[0].msg).folderName; break;
               default: break;
@@ -201,6 +205,12 @@ class CommonChatController extends Controller {
             MSG_TYPE.PICTURE,
             MSG_TYPE.ONLINE_FILE,
             MSG_TYPE.ONLINE_FOLDER,
+            MSG_TYPE.START_AUDIO_CHAT,
+            MSG_TYPE.START_VIDEO_CHAT,
+            MSG_TYPE.JOIN_AUDIO_CHAT,
+            MSG_TYPE.JOIN_VIDEO_CHAT,
+            MSG_TYPE.REJECT_AUDIO_CHAT,
+            MSG_TYPE.REJECT_VIDEO_CHAT,
           ].includes(msgType)) {
             unread += 1;
           }
@@ -405,12 +415,63 @@ class CommonChatController extends Controller {
       `);
       msg = name;
     }
+    // 加入/拒绝 语音/视频聊天
+    if ([
+      MSG_TYPE.JOIN_AUDIO_CHAT,
+      MSG_TYPE.REJECT_AUDIO_CHAT,
+      MSG_TYPE.JOIN_VIDEO_CHAT,
+      MSG_TYPE.REJECT_VIDEO_CHAT,
+    ].includes(msgType)) {
+      const key = msg;
+      const info = (await app.mysql.query(`
+      SELECT * FROM chat
+      WHERE \`key\` = '${key}'
+      `))[0];
+      await app.mysql.query(`
+      UPDATE chat SET msg = '${JSON.stringify({ ...JSON.parse(info.msg), [socket.id]: msgType })}'
+      WHERE \`key\` = '${key}'
+      `);
+      msg = '';
+      // 更新消息
+      const receivedMsg = {
+        key,
+        msg: `${JSON.stringify({ ...JSON.parse(info.msg), [socket.id]: msgType })}`,
+        msgType: `${
+          [MSG_TYPE.JOIN_AUDIO_CHAT, MSG_TYPE.REJECT_AUDIO_CHAT].includes(msgType)
+            ? MSG_TYPE.START_AUDIO_CHAT
+            : MSG_TYPE.START_VIDEO_CHAT}`,
+        peer: info.peer,
+        type,
+        self: false,
+      };
+      socket.emit('receivedMsg', receivedMsg);
+      if (type === FRIEND_TYPE.FRIEND && nsp.sockets[peer]) {
+        nsp.sockets[peer].emit('receivedMsg', receivedMsg);
+      }
+      if (type === FRIEND_TYPE.GROUP) {
+        const members = await app.mysql.query(`
+        SELECT * FROM groupMemberInfo WHERE chatKey = '${peer}'
+      `);
+        for (let i = 0; i < members.length; i++) {
+          const member = members[i];
+          if (member.email !== socket.id && nsp.sockets[member.email]) {
+            nsp.sockets[member.email].emit('receivedMsg', receivedMsg);
+          }
+        }
+      }
+    }
     // 文字聊天/图片/请求发送文件/请求发送文件夹 插入数据库chat表
     if ([
       MSG_TYPE.COMMON_CHAT,
       MSG_TYPE.PICTURE,
       MSG_TYPE.ONLINE_FILE,
       MSG_TYPE.ONLINE_FOLDER,
+      MSG_TYPE.START_AUDIO_CHAT,
+      MSG_TYPE.START_VIDEO_CHAT,
+      MSG_TYPE.JOIN_AUDIO_CHAT,
+      MSG_TYPE.JOIN_VIDEO_CHAT,
+      MSG_TYPE.REJECT_AUDIO_CHAT,
+      MSG_TYPE.REJECT_VIDEO_CHAT,
     ].includes(msgType)) {
       await app.mysql.query(`
       INSERT INTO chat(email,peer,msg,timestamp,msgType,type)
