@@ -6,7 +6,6 @@
  * @param {Egg.EggAppInfo} appInfo app info
  */
 
-const { CLIENT_HOST } = require('../app/utils/const');
 module.exports = appInfo => {
   /**
    * built-in config
@@ -30,13 +29,6 @@ module.exports = appInfo => {
       enable: false,
       ignoreJSON: true,
     },
-    // 允许访问接口的白名单
-    domainWhiteList: [CLIENT_HOST],
-  };
-
-  config.cors = {
-    origin: '*',
-    allowMethods: 'GET,HEAD,PUT,POST,DELETE,PATCH',
   };
 
   config.mysql = {
