@@ -462,7 +462,7 @@ class CommonChatController extends Controller {
           if (member.email !== socket.id && nsp.sockets[member.email]) {
             nsp.sockets[member.email].emit('receivedMsg', receivedMsg);
             if (msgType === MSG_TYPE.JOIN_VIDEO_CHAT || msgType === MSG_TYPE.JOIN_AUDIO_CHAT) {
-              nsp.sockets[peer].emit('joined', {
+              nsp.sockets[member.email].emit('joined', {
                 account: socket.id,
               });
             }

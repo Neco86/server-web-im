@@ -54,4 +54,5 @@ module.exports = app => {
   io.of('/').route('videoOffer', io.controller.mediaChat.videoOffer);
   io.of('/').route('videoAnswer', io.controller.mediaChat.videoAnswer);
   io.of('/').route('newIceCandidate', io.controller.mediaChat.newIceCandidate);
+  io.of('/').route('getUserMediaFinish', io.controller.mediaChat.getUserMediaFinish);
 };

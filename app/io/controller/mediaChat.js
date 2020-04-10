@@ -7,9 +7,9 @@ class MediaChatController extends Controller {
   async videoOffer() {
     const { socket, app } = this.ctx;
     const nsp = app.io.of('/');
-    const { type, peer, offer } = this.ctx.args[0];
+    const { type, peer, offer, index } = this.ctx.args[0];
     if (type === FRIEND_TYPE.FRIEND && nsp.sockets[peer]) {
-      nsp.sockets[peer].emit('videoOffer', { offer });
+      nsp.sockets[peer].emit('videoOffer', { offer, index });
     }
     if (type === FRIEND_TYPE.GROUP) {
       const members = await app.mysql.query(`
@@ -18,8 +18,9 @@ class MediaChatController extends Controller {
       for (let i = 0; i < members.length; i++) {
         const member = members[i];
         if (member.email !== socket.id && nsp.sockets[member.email]) {
-          nsp.sockets[peer].emit('videoOffer', {
+          nsp.sockets[member.email].emit('videoOffer', {
             offer,
+            index,
           });
         }
       }
@@ -28,9 +29,9 @@ class MediaChatController extends Controller {
   async videoAnswer() {
     const { socket, app } = this.ctx;
     const nsp = app.io.of('/');
-    const { type, peer, answer } = this.ctx.args[0];
+    const { type, peer, answer, index } = this.ctx.args[0];
     if (type === FRIEND_TYPE.FRIEND && nsp.sockets[peer]) {
-      nsp.sockets[peer].emit('videoAnswer', { answer });
+      nsp.sockets[peer].emit('videoAnswer', { answer, index });
     }
     if (type === FRIEND_TYPE.GROUP) {
       const members = await app.mysql.query(`
@@ -39,8 +40,9 @@ class MediaChatController extends Controller {
       for (let i = 0; i < members.length; i++) {
         const member = members[i];
         if (member.email !== socket.id && nsp.sockets[member.email]) {
-          nsp.sockets[peer].emit('videoAnswer', {
+          nsp.sockets[member.email].emit('videoAnswer', {
             answer,
+            index,
           });
         }
       }
@@ -49,9 +51,9 @@ class MediaChatController extends Controller {
   async newIceCandidate() {
     const { socket, app } = this.ctx;
     const nsp = app.io.of('/');
-    const { type, peer, candidate } = this.ctx.args[0];
+    const { type, peer, candidate, index } = this.ctx.args[0];
     if (type === FRIEND_TYPE.FRIEND && nsp.sockets[peer]) {
-      nsp.sockets[peer].emit('newIceCandidate', { candidate });
+      nsp.sockets[peer].emit('newIceCandidate', { candidate, index });
     }
     if (type === FRIEND_TYPE.GROUP) {
       const members = await app.mysql.query(`
@@ -60,8 +62,31 @@ class MediaChatController extends Controller {
       for (let i = 0; i < members.length; i++) {
         const member = members[i];
         if (member.email !== socket.id && nsp.sockets[member.email]) {
-          nsp.sockets[peer].emit('newIceCandidate', {
+          nsp.sockets[member.email].emit('newIceCandidate', {
             candidate,
+            index,
+          });
+        }
+      }
+    }
+  }
+  async getUserMediaFinish() {
+    const { socket, app } = this.ctx;
+    const nsp = app.io.of('/');
+    const { type, peer, account } = this.ctx.args[0];
+    if (type === FRIEND_TYPE.FRIEND && nsp.sockets[peer]) {
+      socket.emit('getUserMediaFinish', { account });
+      nsp.sockets[peer].emit('getUserMediaFinish', { account });
+    }
+    if (type === FRIEND_TYPE.GROUP) {
+      const members = await app.mysql.query(`
+      SELECT * FROM groupMemberInfo WHERE chatKey = '${peer}'
+    `);
+      for (let i = 0; i < members.length; i++) {
+        const member = members[i];
+        if (nsp.sockets[member.email]) {
+          nsp.sockets[member.email].emit('getUserMediaFinish', {
+            account,
           });
         }
       }

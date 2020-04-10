@@ -16,15 +16,6 @@ module.exports = () => {
       await app.mysql
         .query('UPDATE userInfo SET status = ? WHERE email = ?',
           [loginUsers[0].recentStatus, tokenInfo.email]);
-      // 加入群组房间
-      const friends = await app.mysql
-        .query(`SELECT * FROM userChatInfo WHERE email = '${socket.id}'`);
-      for (let i = 0; i < friends.length; i++) {
-        const friend = friends[i];
-        if (friend.type === FRIEND_TYPE.GROUP) {
-          socket.join(friend.peer);
-        }
-      }
       // 加入默认房间
       socket.join(DEFAULT_ROOM);
       await next();
