@@ -447,6 +447,11 @@ class CommonChatController extends Controller {
       socket.emit('receivedMsg', receivedMsg);
       if (type === FRIEND_TYPE.FRIEND && nsp.sockets[peer]) {
         nsp.sockets[peer].emit('receivedMsg', receivedMsg);
+        if (msgType === MSG_TYPE.JOIN_VIDEO_CHAT || msgType === MSG_TYPE.JOIN_AUDIO_CHAT) {
+          nsp.sockets[peer].emit('joined', {
+            account: socket.id,
+          });
+        }
       }
       if (type === FRIEND_TYPE.GROUP) {
         const members = await app.mysql.query(`
@@ -456,6 +461,11 @@ class CommonChatController extends Controller {
           const member = members[i];
           if (member.email !== socket.id && nsp.sockets[member.email]) {
             nsp.sockets[member.email].emit('receivedMsg', receivedMsg);
+            if (msgType === MSG_TYPE.JOIN_VIDEO_CHAT || msgType === MSG_TYPE.JOIN_AUDIO_CHAT) {
+              nsp.sockets[peer].emit('joined', {
+                account: socket.id,
+              });
+            }
           }
         }
       }

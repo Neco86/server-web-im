@@ -28,9 +28,9 @@
     "node": ">=10.0.0"
   },
   "scripts": {
-    "start": "egg-scripts start --daemon --title=egg-server-server-web-im",
+    "start": "egg-scripts start --sticky --daemon --title=egg-server-server-web-im",
     "stop": "egg-scripts stop --title=egg-server-server-web-im",
-    "dev": "egg-bin dev --https.key=\"/usr/local/etc/nginx/server.key\" --https.cert=\"/usr/local/etc/nginx/server.crt\"",
+    "dev": "egg-bin dev --sticky --https.key=\"/usr/local/etc/nginx/server.key\" --https.cert=\"/usr/local/etc/nginx/server.crt\"",
     "dev_http": "egg-bin dev",
     "debug": "egg-bin debug",
     "test": "npm run lint -- --fix && npm run test-local",
