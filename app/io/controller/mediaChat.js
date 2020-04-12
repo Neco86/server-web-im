@@ -92,6 +92,27 @@ class MediaChatController extends Controller {
       }
     }
   }
+  async hangUp() {
+    const { socket, app } = this.ctx;
+    const nsp = app.io.of('/');
+    const { type, peer, account } = this.ctx.args[0];
+    if (type === FRIEND_TYPE.FRIEND && nsp.sockets[peer]) {
+      nsp.sockets[peer].emit('hangUp', { account });
+    }
+    if (type === FRIEND_TYPE.GROUP) {
+      const members = await app.mysql.query(`
+      SELECT * FROM groupMemberInfo WHERE chatKey = '${peer}'
+    `);
+      for (let i = 0; i < members.length; i++) {
+        const member = members[i];
+        if (member.email !== socket.id && nsp.sockets[member.email]) {
+          nsp.sockets[member.email].emit('hangUp', {
+            account,
+          });
+        }
+      }
+    }
+  }
 }
 
 module.exports = MediaChatController;
