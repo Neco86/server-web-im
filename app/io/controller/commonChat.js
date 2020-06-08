@@ -277,7 +277,7 @@ class CommonChatController extends Controller {
                       WHERE email = '${member.email}' 
                       AND peer = '${socket.id}' 
                       AND type = '${FRIEND_TYPE.FRIEND}'
-                      `))[0].remarkName
+                      `))[0] || {}.remarkName
               ||
               (await app.mysql
                 .query(`SELECT * FROM userInfo
