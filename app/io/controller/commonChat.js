@@ -440,11 +440,12 @@ class CommonChatController extends Controller {
           [MSG_TYPE.JOIN_AUDIO_CHAT, MSG_TYPE.REJECT_AUDIO_CHAT].includes(msgType)
             ? MSG_TYPE.START_AUDIO_CHAT
             : MSG_TYPE.START_VIDEO_CHAT}`,
-        peer: info.peer,
+        peer: type === FRIEND_TYPE.FRIEND ? info.peer : info.email,
         type,
         self: false,
       };
       socket.emit('receivedMsg', receivedMsg);
+      receivedMsg.self = true;
       if (type === FRIEND_TYPE.FRIEND && nsp.sockets[peer]) {
         nsp.sockets[peer].emit('receivedMsg', receivedMsg);
         if (msgType === MSG_TYPE.JOIN_VIDEO_CHAT || msgType === MSG_TYPE.JOIN_AUDIO_CHAT) {
@@ -460,6 +461,7 @@ class CommonChatController extends Controller {
         for (let i = 0; i < members.length; i++) {
           const member = members[i];
           if (member.email !== socket.id && nsp.sockets[member.email]) {
+            receivedMsg.peer = member.email;
             nsp.sockets[member.email].emit('receivedMsg', receivedMsg);
             if (msgType === MSG_TYPE.JOIN_VIDEO_CHAT || msgType === MSG_TYPE.JOIN_AUDIO_CHAT) {
               nsp.sockets[member.email].emit('joined', {
